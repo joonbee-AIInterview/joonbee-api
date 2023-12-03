@@ -98,7 +98,7 @@ export class MemberService {
      /**
      * @note member - interview - interview_and_question
      */
-    async myInfoData(memberId: number): Promise<ResponseMyInfoDTO>{
+    async myInfoData(memberId: string): Promise<ResponseMyInfoDTO>{
        try{
             const result: RowDataPacket = await this.memberRepository
                 .createQueryBuilder('m')
@@ -109,15 +109,15 @@ export class MemberService {
                 .groupBy('m.id')
                 .getRawOne();
 
-            const rowPacket: RowDataPacket[] = await this.categoryRepository
-                .createQueryBuilder('c')
+            const rowPacket: RowDataPacket[] = await this.interviewRepository.createQueryBuilder('i')
                 .select('c.category_name', 'categoryName')
-                .addSelect('COUNT(DISTINCT q.id)', 'categoryCount')
-                .innerJoin('c.questions', 'q', 'c.category_level = 1')
-                .innerJoin('q.interviewAndQuestions', 'iaq')
-                .innerJoin('iaq.interview', 'i', 'i.member_id = :memberId', { memberId: '13b4a' })
+                .addSelect('COUNT(*)','questionCount')
+                .innerJoin('i.interviewAndQuestions','iaq')
+                .innerJoin('iaq.question','q')
+                .innerJoin('q.category','c','c.category_level = 1')
+                .where('i.member_id = :memberId',{memberId})
                 .groupBy('c.category_name')
-                .orderBy('categoryCount', 'DESC')
+                .orderBy('questionCount','DESC')
                 .getRawMany();
             
             const categoryInfoDTOs: ResponseCategoryInfoDTO[] = rowPacket.map(packet => ({
@@ -134,6 +134,7 @@ export class MemberService {
             };
             
             return dto;
+            
        }catch(error){
             console.log('insertInterview ERROR member.serivce 121\n' + error);
             throw new CustomError('사용자 정보 불러오기 실패',500);

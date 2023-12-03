@@ -166,8 +166,8 @@ export class MemberController {
         
         if (!categoryName || !questions || !Array.isArray(questions) || questions.length === 0) {
             const apiResponse: ApiResponse<string> = {
-                status: 200,
-                data: '성공'
+                status: 400,
+                data: '값이 누락되었습니다.'
             }
             response.json(apiResponse);          
 

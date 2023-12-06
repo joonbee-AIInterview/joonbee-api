@@ -23,6 +23,9 @@ export class RequestLikeDTO{
 
 export class RequestInterviewSaveDTO{
 
+    @ApiProperty({ description: 'GPT 소감'})
+    gptOpinion: string;
+
     @ApiProperty({ description : '카테고리 이름'})
     categoryName: string;
 

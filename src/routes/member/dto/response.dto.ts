@@ -58,3 +58,13 @@ export interface ResponseProfileDTO{
     image: string;
     nickName: string;
 }
+
+export interface ResponseInterviewDetail{
+    gptOpinion: string;
+    questionContents: ResponseQuestionInfo[];
+}
+
+export interface ResponseQuestionInfo{
+    questionId: number;
+    questionContent: string;
+}

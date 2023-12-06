@@ -14,6 +14,9 @@ export class Interview{
     @Column({ name : 'category_name' })
     categoryName: string;
 
+    @Column({ name : 'gpt_opinion', type: 'text', nullable: true})
+    gptOpinion: string;
+
     @ManyToOne(() => Member, member => member.id, { onDelete: 'CASCADE'})
     @JoinColumn({name: 'member_id'})
     member: Member;

@@ -7,7 +7,7 @@ import { TokenAuthGuard } from 'src/common/config/auth';
 import { Request, Response } from 'express';
 import { ApiBody } from '@nestjs/swagger';
 import { Member } from 'src/entity/member.entity';
-import { ResponseCartDTO, ResponseInterviewCategoryDTO, ResponseMyInfoDTO, ResponseProfileDTO } from './dto/response.dto';
+import { ResponseCartDTO, ResponseInterviewCategoryDTO, ResponseInterviewDetail, ResponseMyInfoDTO, ResponseProfileDTO } from './dto/response.dto';
  
 @Controller('api/member')
 export class MemberController {
@@ -31,6 +31,26 @@ export class MemberController {
             data: dto
         }
 
+        response.json(apiResponse);
+    }
+
+    /**
+     * @api 나의 면접 자세히보기 (1개))
+     */
+    @UseGuards(TokenAuthGuard)
+    @Get('interview/detail')
+    async myInterviewDetail(
+        @Res() response: Response,
+        @Query('interId', ParseIntPipe) interviewId: number 
+    ){
+        const memberId = response.locals.memberId;
+
+        const data: ResponseInterviewDetail = await this.memberService.findByForMyInterviewData(interviewId);
+        
+        const apiResponse: ApiResponse<ResponseInterviewDetail> = {
+            status: 200,
+            data
+        };
         response.json(apiResponse);
     }
 
@@ -162,7 +182,7 @@ export class MemberController {
         @Req() request: Request,
         @Res() response: Response
     ){
-        const { categoryName, questions } = request.body;
+        const { categoryName, questions, gptOpinion } = request.body;
         
         if (!categoryName || !questions || !Array.isArray(questions) || questions.length === 0) {
             const apiResponse: ApiResponse<string> = {
@@ -175,6 +195,7 @@ export class MemberController {
             const memberId = response.locals.memberId;
             
             const data: RequestInterviewSaveDTO = {
+                gptOpinion,
                 categoryName,
                 questions
             }

@@ -11,7 +11,7 @@ import { RequestInterviewSaveDTO } from './dto/request.dto';
 import { Interview } from 'src/entity/interview.entity';
 import { InterviewAndQuestion } from 'src/entity/and.question.entity';
 import { plainToClass } from 'class-transformer';
-import { ResponseCartDTO, ResponseCategoryInfoDTO, ResponseInterviewCategoryDTO, ResponseInterviewCategoryData, ResponseMyInfoDTO, ResponseProfileDTO } from './dto/response.dto';
+import { ResponseCartDTO, ResponseCategoryInfoDTO, ResponseInterviewCategoryDTO, ResponseInterviewCategoryData, ResponseInterviewDetail, ResponseMyInfoDTO, ResponseProfileDTO, ResponseQuestionInfo } from './dto/response.dto';
 import { Cart } from 'src/entity/cart.entity';
 
 @Injectable()
@@ -72,7 +72,8 @@ export class MemberService {
         try{
             const interviewObject = this.interviewRepository.create({
                  memberId,
-                 categoryName : questionInfo.categoryName
+                 categoryName : questionInfo.categoryName,
+                 gptOpinion: questionInfo.gptOpinion
             });
             const interviewEntity: Interview = await this.interviewRepository.save(interviewObject);
 
@@ -122,7 +123,7 @@ export class MemberService {
             
             const categoryInfoDTOs: ResponseCategoryInfoDTO[] = rowPacket.map(packet => ({
                 categoryName: packet.categoryName,
-                categoryCount: +packet.categoryCount
+                categoryCount: +packet.questionCount
             }));
 
             const dto: ResponseMyInfoDTO = {
@@ -134,7 +135,7 @@ export class MemberService {
             };
             
             return dto;
-            
+
        }catch(error){
             console.log('insertInterview ERROR member.serivce 121\n' + error);
             throw new CustomError('사용자 정보 불러오기 실패',500);
@@ -315,5 +316,41 @@ export class MemberService {
             console.error(error);
             throw new CustomError('사용자 프로필 조회 실패', 500);
        }
+   }
+
+   /**
+    * @note 마이페이지에서 자신의 면접 정보 조회
+    */
+   async findByForMyInterviewData(interviewId: number): Promise<ResponseInterviewDetail>{
+        try{
+            const questionInfos: ResponseQuestionInfo[] = [];
+           
+            const data: RowDataPacket[] = await this.interviewRepository
+                .createQueryBuilder('i')
+                .select(['i.gpt_opinion AS gptOpinion'])
+                .addSelect("q.question_content", "questionContent")
+                .addSelect("q.id","id")
+                .innerJoin('i.interviewAndQuestions','iaq')
+                .innerJoin('iaq.question','q')
+                .where('i.id = :interviewId', {interviewId})
+                .getRawMany();
+
+            data.forEach((result) => {
+                questionInfos.push({
+                    questionId : +result.id,
+                    questionContent : result.questionContent
+                });
+            })
+
+            const resultDTO: ResponseInterviewDetail = {
+                gptOpinion : data[0].gptOpinion,
+                questionContents : questionInfos
+            };
+            return resultDTO;
+            
+        }catch(error){
+            console.error(error);
+            throw new CustomError('사용자 면접정보 자세히 보기 실패',500);
+        }
    }
 }

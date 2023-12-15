@@ -5,7 +5,7 @@ import { Category } from "src/entity/category.entity";
 import { Question } from "src/entity/question.entity";
 import { Repository } from "typeorm";
 import { CustomError } from "src/common/config/common";
-import { ResponseQuestionsDTO, ResponseQuestionsWithCategoryData } from "./dto/response.dto";
+import { ResponseGPTQuestionData, ResponseGPTQuestionsDTO, ResponseQuestionsDTO, ResponseQuestionsWithCategoryData } from "./dto/response.dto";
 
 
 @Injectable()
@@ -125,7 +125,23 @@ export class QuestionService {
           }
      }
 
+     /**
+     * @note 사용자가 인터뷰를 위해 상위 카테고리 1개, 하위 카테고리 1개, 질문의 개수를 가져온다.
+     */
+     async getQuestionsByGPT (memberId: string, categoryName: string, subcategoryName: string, questionCount: string): Promise<ResponseGPTQuestionsDTO> {
+          try {
+               const rowPacket: RowDataPacket[] = await this.questionRepository.createQueryBuilder('q')
+                    .select(['q.id as questionId', 'q.question_content as questionContent', 'c.category_name as subcategory'])
+                    .innerJoin('Category', 'c', 'q.category_id = c.id AND c.category_name = :categoryName', { categoryName: subcategoryName })
+                    .where('q.writer = :writer', { writer: 'gpt' })
+                    .orderBy('RAND()').limit(parseInt(questionCount)).getRawMany();
 
+               return this.makeGPTResult(memberId, categoryName, rowPacket);
+          } catch (error) {
+               console.log('getQuestionsByGPT ERROR question.service 123\n' + error);
+               throw new CustomError('GPT질문들 가져오기 실패', 500);
+          }
+     }
      
      /**
       * questionsWithCategoryDTOs => result 공통메소드
@@ -141,6 +157,23 @@ export class QuestionService {
           const result: ResponseQuestionsDTO = {
                total: Number(countQuery.count),
                result: questionsWithCategoryDTOs
+          }
+          return result;
+     }
+
+     /**
+      * questionByGptDTOs -> 메소드화
+      */
+     makeGPTResult(memberId: string, categoryName: string, rowPacket: RowDataPacket[]): ResponseGPTQuestionsDTO {
+          const questionByGptDTOs: ResponseGPTQuestionData[] = rowPacket.map(packet => ({
+               questionId: packet.questionId,
+               subcategoryName: packet.subcategory,
+               questionContent: packet.questionContent,
+          }));
+          const result: ResponseGPTQuestionsDTO = {
+               memberId: memberId,
+               category: categoryName,
+               result: questionByGptDTOs,
           }
           return result;
      }

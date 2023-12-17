@@ -8,7 +8,6 @@ import { Member } from 'src/entity/member.entity';
 import { Like } from 'src/entity/like.entity';
 import { InterviewAndQuestion } from 'src/entity/and.question.entity';
 import { Question } from 'src/entity/question.entity';
-import { Category } from 'src/entity/category.entity';
 
 @Injectable()
 export class InterviewService {
@@ -36,7 +35,7 @@ export class InterviewService {
       
                const rowPacket = await this.interviewRepository
                     .createQueryBuilder('interview')
-                    .select(['interview.id as interviewId','interview.member_id as memberId','m.thumbnail as thumbnail','interview.category_name as categoryName','COUNT(l.member_id) as likeCount',])
+                    .select(['interview.id as interviewId','interview.member_id as memberId','m.thumbnail as thumbnail', 'm.nick_name as nickname', 'interview.category_name as categoryName','COUNT(l.member_id) as likeCount',])
                     .innerJoin(Member, 'm', 'interview.member_id = m.id')
                     .leftJoin(Like, 'l', 'interview.id = l.interview_id')
                     .groupBy('interview.id, interview.member_id, m.thumbnail, interview.category_name')
@@ -46,7 +45,7 @@ export class InterviewService {
                     .getRawMany();
       
                const interviewsWithQuestionCategoryMemberDTOs = await Promise.all(rowPacket.map(async packet => {
-                    const { interviewId, memberId, thumbnail, categoryName, likeCount } = packet;
+                    const { interviewId, memberId, thumbnail, categoryName, likeCount, nickname } = packet;
                     const questionsQuery = await this.interviewAndQuestionRepository
                          .createQueryBuilder('iaq')
                          .select(['q.id as questionId','q.question_content as questionContent',])
@@ -54,7 +53,7 @@ export class InterviewService {
                          .where('iaq.interview_id = :interviewId', { interviewId })
                          .getRawMany();
                     const questions = questionsQuery.map(({ questionId, questionContent }) => ({questionId, questionContent,}));
-                    return {interviewId, memberId, thumbnail, categoryName, likeCount, questions,};
+                    return {interviewId, memberId, nickname, thumbnail, categoryName, likeCount, questions,};
                }));
       
                const result: ResponseInterviewsDTO = {
@@ -63,7 +62,7 @@ export class InterviewService {
                };
                return result;
           } catch (error) {
-              console.log(`getInterviews ERROR interview.service: ${error}`);
+              console.log('getInterviews ERROR interview.service 66\n' + error);
               throw new CustomError('메인 페이지 상단 디폴트 랜덤 인터뷰 정보 불러오기 실패', 500);
           }
      }
@@ -82,7 +81,7 @@ export class InterviewService {
       
                const rowPacket = await this.interviewRepository
                     .createQueryBuilder('interview')
-                    .select(['interview.id as interviewId','interview.member_id as memberId','m.thumbnail as thumbnail','interview.category_name as categoryName','COUNT(l.member_id) as likeCount',])
+                    .select(['interview.id as interviewId','interview.member_id as memberId','m.thumbnail as thumbnail', 'm.nick_name as nickname', 'interview.category_name as categoryName','COUNT(l.member_id) as likeCount',])
                     .innerJoin(Member, 'm', 'interview.member_id = m.id')
                     .leftJoin(Like, 'l', 'interview.id = l.interview_id')
                     .where('interview.categoryName = :categoryName', { categoryName: categoryName })
@@ -93,7 +92,7 @@ export class InterviewService {
                     .getRawMany();
       
                const interviewsWithQuestionCategoryMemberDTOs = await Promise.all(rowPacket.map(async packet => {
-                    const { interviewId, memberId, thumbnail, categoryName, likeCount } = packet;
+                    const { interviewId, memberId, thumbnail, categoryName, likeCount, nickname } = packet;
                     const questionsQuery = await this.interviewAndQuestionRepository
                          .createQueryBuilder('iaq')
                          .select(['q.id as questionId','q.question_content as questionContent',])
@@ -101,7 +100,7 @@ export class InterviewService {
                          .where('iaq.interview_id = :interviewId', { interviewId })
                          .getRawMany();
                     const questions = questionsQuery.map(({ questionId, questionContent }) => ({questionId, questionContent,}));
-                    return {interviewId, memberId, thumbnail, categoryName, likeCount, questions,};
+                    return {interviewId, memberId, nickname, thumbnail, categoryName, likeCount, questions,};
                }));
 
                const result: ResponseInterviewsDTO = {
@@ -110,7 +109,7 @@ export class InterviewService {
                };
                return result;
           } catch(error) {
-               console.log('getInterviewsWithLikeMemberQuestion ERROR interview.service 148\n' + error);
+               console.log('getInterviewsWithLikeMemberQuestion ERROR interview.service 113\n' + error);
                throw new CustomError('메인 페이지 상단 상위 카테고리 랜덤 인터뷰 정보 불러오기 실패', 500);
           }
      }

@@ -4,6 +4,7 @@
 export class ResponseInterviewsWithLikeMemberQuestionData {
      interviewId: number;
      memberId: string;
+     nickname: string;
      thumbnail: string;
      categoryName: string;
      likeCount: number;

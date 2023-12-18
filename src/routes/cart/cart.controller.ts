@@ -6,6 +6,9 @@ import { Response } from 'express';
 import { TokenAuthGuard } from "src/common/config/auth";
 import { RequestMemberQuestionInsertCartDTO } from "./dto/request.dto";
 import { ApiBody } from "@nestjs/swagger";
+import { InjectRepository } from "@nestjs/typeorm";
+import { Category } from "src/entity/category.entity";
+import { Repository } from "typeorm";
 
 @Controller('api/cart')
 export class CartController {
@@ -15,15 +18,22 @@ export class CartController {
      * 원시 Express형식으로 응답을 보내야한다.
      */
 
-     constructor(private readonly cartService: CartService){}
+     constructor(
+          private readonly cartService: CartService,
+          // 유효성 검사용
+          @InjectRepository(Category)
+          private readonly categoryRepository: Repository<Category>,
+     ){}
 
      /**
-      * @api 사용자의 장바구니 질문을 가져온다.(디폴트)
+      * @api 사용자의 장바구니 질문을 선택에 따라 가져온다.
       */
      @UseGuards(TokenAuthGuard)
      @Get('questions')
      async getMemberCarts(
           @Query('page') page: string,
+          @Query('category') category: string,
+          @Query('subcategory') subcategory: string,
           @Res() response: Response,
      ) {
         // 유효성 검사
@@ -31,9 +41,35 @@ export class CartController {
         // 0인 경우 1로 바꾸기
         if (page === "0") page = "1";
         const memberId = response.locals.memberId;
-        
+        let data;
+
         try {
-          const data = await this.cartService.getMemberCarts(Number(page), memberId);
+          if (category === "" && subcategory === "") {
+               data = await this.cartService.getMemberCarts(Number(page), memberId);
+          } else if (category !== "" && subcategory === "") {
+               const check = await this.categoryRepository.findOne({
+                    where: {
+                         categoryName: category,
+                    },
+               });
+               if (!check || check.categoryLevel !== 0) throw new CustomError('데이터베이스에 존재하지 않는 상위카테고리입니다. ', 404);
+               data = await this.cartService.getMemberCartsByCategory(Number(page), memberId, category);
+          } else {
+               const checkCategory = await this.categoryRepository.findOne({
+                    where: {
+                         categoryName: category,
+                    },
+               });
+               if (!checkCategory || checkCategory.categoryLevel !== 0) throw new CustomError('데이터베이스에 존재하지 않는 상위카테고리입니다. ', 404);
+               const checkSubcategory = await this.categoryRepository.findOne({
+                    where: {
+                         categoryName: subcategory,
+                    },
+               });
+               if (!checkSubcategory || checkSubcategory.categoryLevel !== 1) throw new CustomError('데이터베이스에 존재하지 않는 하위카테고리입니다. ', 404);
+               data = await this.cartService.getMemberCartsBySubcategory(Number(page), memberId, category, subcategory);
+          }
+
           const apiResponse: ApiResponse<ResponseCartQuestionsDTO> = {
                status: 200,
                data
@@ -44,65 +80,65 @@ export class CartController {
         }
      }
 
-     /**
-      * @api 사용자의 장바구니 질문을 상위 카테고리로 필터링해서 가져온다.
-      */
-     @UseGuards(TokenAuthGuard)
-     @Get('questions/category')
-     async getMemberCartsByCategory(
-          @Query('page') page: string,
-          @Query('category') category: string,
-          @Res() response: Response,
-     ) {
-          // 유효성 검사
-          if (page === "") throw new CustomError('페이지가 비었습니다. ', 400);
-          if (category === "") throw new CustomError('카테고리가 비었습니다. ', 400);
-          // 0인 경우 1로 바꾸기
-          if (page === "0") page = "1";
-          const memberId = response.locals.memberId;
+     // /**
+     //  * @api 사용자의 장바구니 질문을 상위 카테고리로 필터링해서 가져온다.
+     //  */
+     // @UseGuards(TokenAuthGuard)
+     // @Get('questions/category')
+     // async getMemberCartsByCategory(
+     //      @Query('page') page: string,
+     //      @Query('category') category: string,
+     //      @Res() response: Response,
+     // ) {
+     //      // 유효성 검사
+     //      if (page === "") throw new CustomError('페이지가 비었습니다. ', 400);
+     //      if (category === "") throw new CustomError('카테고리가 비었습니다. ', 400);
+     //      // 0인 경우 1로 바꾸기
+     //      if (page === "0") page = "1";
+     //      const memberId = response.locals.memberId;
 
-          try {
-               const data = await this.cartService.getMemberCartsByCategory(Number(page), memberId, category);
-               const apiResponse: ApiResponse<ResponseCartQuestionsDTO> = {
-                    status: 200,
-                    data
-               }
-               response.json(apiResponse);
-          } catch (error) {
-               throw new CustomError('알 수 없는 에러 : ' + error,500);
-          }
-     }
+     //      try {
+     //           const data = await this.cartService.getMemberCartsByCategory(Number(page), memberId, category);
+     //           const apiResponse: ApiResponse<ResponseCartQuestionsDTO> = {
+     //                status: 200,
+     //                data
+     //           }
+     //           response.json(apiResponse);
+     //      } catch (error) {
+     //           throw new CustomError('알 수 없는 에러 : ' + error,500);
+     //      }
+     // }
 
-     /**
-      * @api 사용자의 장바구니 질문을 하위 카테고리로 필터링해서 가져온다.
-      */
-     @UseGuards(TokenAuthGuard)
-     @Get('questions/subcategory')
-     async getMemberCartsBySubcategory(
-          @Query('page') page: string,
-          @Query('category') category: string,
-          @Query('subcategory') subcategory: string,
-          @Res() response: Response,
-     ) {
-          // 유효성 검사
-          if (page === "") throw new CustomError('페이지가 비었습니다. ', 400);
-          if (category === "") throw new CustomError('카테고리가 비었습니다. ', 400);
-          if (subcategory === "") throw new CustomError('서브카테고리가 비었습니다. ', 400);
-          // 0인 경우 1로 바꾸기
-          if (page === "0") page = "1";
-          const memberId = response.locals.memberId;
+     // /**
+     //  * @api 사용자의 장바구니 질문을 하위 카테고리로 필터링해서 가져온다.
+     //  */
+     // @UseGuards(TokenAuthGuard)
+     // @Get('questions/subcategory')
+     // async getMemberCartsBySubcategory(
+     //      @Query('page') page: string,
+     //      @Query('category') category: string,
+     //      @Query('subcategory') subcategory: string,
+     //      @Res() response: Response,
+     // ) {
+     //      // 유효성 검사
+     //      if (page === "") throw new CustomError('페이지가 비었습니다. ', 400);
+     //      if (category === "") throw new CustomError('카테고리가 비었습니다. ', 400);
+     //      if (subcategory === "") throw new CustomError('서브카테고리가 비었습니다. ', 400);
+     //      // 0인 경우 1로 바꾸기
+     //      if (page === "0") page = "1";
+     //      const memberId = response.locals.memberId;
 
-          try {
-               const data = await this.cartService.getMemberCartsBySubcategory(Number(page), memberId, category, subcategory);
-               const apiResponse: ApiResponse<ResponseCartQuestionsDTO> = {
-                    status: 200,
-                    data
-               }
-               response.json(apiResponse);
-          } catch (error) {
-               throw new CustomError('알 수 없는 에러 : ' + error,500);
-          }
-     }
+     //      try {
+     //           const data = await this.cartService.getMemberCartsBySubcategory(Number(page), memberId, category, subcategory);
+     //           const apiResponse: ApiResponse<ResponseCartQuestionsDTO> = {
+     //                status: 200,
+     //                data
+     //           }
+     //           response.json(apiResponse);
+     //      } catch (error) {
+     //           throw new CustomError('알 수 없는 에러 : ' + error,500);
+     //      }
+     // }
 
      /**
       * @api 사용자가 질문을 생성하고 본인의 장바구에 저장한다.

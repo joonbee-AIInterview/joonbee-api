@@ -24,13 +24,13 @@ export class QuestionController {
      ){}
 
      /**
-      * @api 메인 페이지 하단부분 API
+      * @api 메인 페이지 하단부분 API, 디폴트로 16개의 랜덤질문을 가져온다.
       */
      @Get('all')
      async getQuestions(
           @Query('page') page: string = "1",
           @Query('category') category: string,
-          @Query('subcategory') subCategory: string,
+          @Query('subcategory') subcategory: string,
           @Res() response: Response,
      ) {  
           // 유효성 검사
@@ -40,9 +40,9 @@ export class QuestionController {
           let data;
 
           try {
-               if (category === "" && subCategory === "") {
+               if (category === "" && subcategory === "") {
                     data = await this.questionService.getQuestions(Number(page));
-               } else if (category !== "" && subCategory === "") {
+               } else if (category !== "" && subcategory === "") {
                     const check = await this.categoryRepository.findOne({
                          where: {
                               categoryName: category,
@@ -51,13 +51,19 @@ export class QuestionController {
                     if (!check || check.categoryLevel !== 0) throw new CustomError('데이터베이스에 존재하지 않는 상위카테고리입니다. ', 404);
                     data = await this.questionService.getQuestionsWithCategory(Number(page), category);
                } else {
-                    const check = await this.categoryRepository.findOne({
+                    const checkCategory = await this.categoryRepository.findOne({
                          where: {
-                              categoryName: subCategory,
+                              categoryName: category,
                          },
                     });
-                    if (!check || check.categoryLevel !== 1) throw new CustomError('데이터베이스에 존재하지 않는 하위카테고리입니다. ', 404);
-                    data = await this.questionService.getQuestionsWithSubcategory(Number(page), category, subCategory);
+                    if (!checkCategory || checkCategory.categoryLevel !== 0) throw new CustomError('데이터베이스에 존재하지 않는 상위카테고리입니다. ', 404);
+                    const checkSubcategory = await this.categoryRepository.findOne({
+                         where: {
+                              categoryName: subcategory,
+                         },
+                    });
+                    if (!checkSubcategory || checkSubcategory.categoryLevel !== 1) throw new CustomError('데이터베이스에 존재하지 않는 하위카테고리입니다. ', 404);
+                    data = await this.questionService.getQuestionsWithSubcategory(Number(page), category, subcategory);
                }
 
                const apiResponse: ApiResponse<ResponseQuestionsDTO> = {

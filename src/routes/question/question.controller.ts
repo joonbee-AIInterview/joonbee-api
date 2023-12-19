@@ -1,4 +1,4 @@
-import { Controller,Get, Query, Res, UseGuards } from "@nestjs/common";
+import { Controller,Get, ParseArrayPipe, Query, Res, UseGuards } from "@nestjs/common";
 import { QuestionService } from "src/routes/question/question.service";
 import { ApiResponse, CustomError } from "src/common/config/common";
 import { ResponseGPTQuestionsDTO, ResponseQuestionsDTO } from "./dto/response.dto";
@@ -139,15 +139,14 @@ export class QuestionController {
      @Get('gpt')
      async getQuestionsByGPT(
           @Query('category') category: string,
-          @Query('subcategory') subcategory: string,
+          @Query('subcategory', new ParseArrayPipe({ items: String, separator: ',' })) subcategory: string[],
           @Query('questionCount') questionCount: string,
           @Res() response: Response  
      ) {
           if (category === "") throw new CustomError('카테고리가 비었습니다. ', 400);
-          if (subcategory === "") throw new CustomError('서브카테고리가 비었습니다. ', 400);
+          if (subcategory.length <= 0) throw new CustomError('서브카테고리가 비었습니다. ', 400);
           if (![2, 4, 6, 8, 10].includes(parseInt(questionCount))) throw new CustomError('질문의 개수를 2, 4, 6, 8, 10 중에서 선택해주세요. ', 400);
           const memberId: string = response.locals.memberId;
-
           try {
                const data = await this.questionService.getQuestionsByGPT(memberId, category, subcategory, questionCount);
                const apiResponse: ApiResponse<ResponseGPTQuestionsDTO> = {
@@ -155,7 +154,7 @@ export class QuestionController {
                     data
                 }
                response.json(apiResponse);
-          } catch (error) {
+          } catch (error) { 
                throw new CustomError('알 수 없는 에러 : ' + error,500);
           }
      }

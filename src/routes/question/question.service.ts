@@ -126,15 +126,15 @@ export class QuestionService {
      }
 
      /**
-     * @note 사용자가 인터뷰를 위해 상위 카테고리 1개, 하위 카테고리 1개, 질문의 개수를 가져온다.
+     * @note 사용자가 인터뷰를 위해 상위 카테고리 1개, 하위 카테고리 1-N개, 질문의 개수를 가져온다.
      */
-     async getQuestionsByGPT (memberId: string, categoryName: string, subcategoryName: string, questionCount: string): Promise<ResponseGPTQuestionsDTO> {
+     async getQuestionsByGPT (memberId: string, categoryName: string, subcategoryName: string[], questionCount: string): Promise<ResponseGPTQuestionsDTO> {
           try {
                const rowPacket: RowDataPacket[] = await this.questionRepository.createQueryBuilder('q')
                     .select(['q.id as questionId', 'q.question_content as questionContent', 'c.category_name as subcategory'])
-                    .innerJoin('Category', 'c', 'q.category_id = c.id AND c.category_name = :categoryName', { categoryName: subcategoryName })
+                    .innerJoin('Category', 'c', 'q.category_id = c.id AND c.category_name IN (:...categoryNames)', { categoryNames: subcategoryName })
                     .where('q.writer = :writer', { writer: 'gpt' })
-                    .orderBy('RAND()').limit(parseInt(questionCount)).getRawMany();
+                    .orderBy('RAND()').limit(parseInt(questionCount)).getRawMany(); // RAND(): 추후 최적화 필요!
 
                return this.makeGPTResult(memberId, categoryName, rowPacket);
           } catch (error) {

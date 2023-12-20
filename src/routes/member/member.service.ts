@@ -41,6 +41,20 @@ export class MemberService {
      */
     async insertLike(memberId: string, interviewId: number): Promise<void>{
         try{
+            const existsLike = await this.likeRepository.createQueryBuilder('l')
+                                    .where('l.memberId = :memberId',{memberId})
+                                    .andWhere('l.interviewId = :interviewId',{interviewId})
+                                    .getOne();
+
+            if(existsLike){
+                await this.likeRepository.createQueryBuilder('l')
+                                    .delete()
+                                    .where('memberId = :memberId', {memberId})
+                                    .andWhere('interviewId = :interviewId',{interviewId})
+                                    .execute();
+                return;
+            }
+
             const likeObj = this.likeRepository.create({
                 memberId: memberId,
                 interviewId: interviewId
@@ -55,7 +69,6 @@ export class MemberService {
                                 .where('i.id = :id', { id : interviewId })
                                 .getRawOne() as RowDataPacket;
 
-            console.log(interviewEntityForMemberId);
             const publishWithMemberId = interviewEntityForMemberId.memberId;
             await this.redisService.publish(publishWithMemberId);
 

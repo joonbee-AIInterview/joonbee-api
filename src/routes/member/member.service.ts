@@ -114,6 +114,8 @@ export class MemberService {
      */
     async myInfoData(memberId: string): Promise<ResponseMyInfoDTO>{
        try{
+            let questionCount = 0;
+
             const result: RowDataPacket = await this.memberRepository
                 .createQueryBuilder('m')
                 .select(['m.id','m.thumbnail', 'm.nickName'])
@@ -134,16 +136,20 @@ export class MemberService {
                 .orderBy('questionCount','DESC')
                 .getRawMany();
             
-            const categoryInfoDTOs: ResponseCategoryInfoDTO[] = rowPacket.map(packet => ({
-                categoryName: packet.categoryName,
-                categoryCount: +packet.questionCount
-            }));
+            const categoryInfoDTOs: ResponseCategoryInfoDTO[] = rowPacket.map(packet => {
+                questionCount += Number(packet.questionCount);                
+                return ({
+                    categoryName: packet.categoryName,
+                    categoryCount: +packet.questionCount,
+                })
+            });
 
             const dto: ResponseMyInfoDTO = {
                 id: result.m_id,
                 thumbnail: result.m_thumbnail,
                 nickName: result.m_nick_name,
                 interviewCount: result.interviewCount,
+                questionCount: questionCount,
                 categoryInfo: categoryInfoDTOs
             };
             

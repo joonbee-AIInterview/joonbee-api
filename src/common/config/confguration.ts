@@ -24,7 +24,7 @@ export class TypeOrmConfigService implements TypeOrmOptionsFactory {
         "database": this.configService.get<string>('DATABASE_DB'),
         "entities": [Member, Category, Question, Like, Interview, InterviewAndQuestion, Cart],
         "synchronize": false,
-        "logging": true
+        "logging": false
         };
       }
 }

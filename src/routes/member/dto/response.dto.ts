@@ -18,6 +18,8 @@ export class ResponseMyInfoDTO{
 
     interviewCount: number;
 
+    questionCount: number;
+
     categoryInfo: ResponseCategoryInfoDTO[];
 }
 export class ResponseCategoryInfoDTO {

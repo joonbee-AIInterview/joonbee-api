@@ -41,6 +41,20 @@ export class MemberService {
      */
     async insertLike(memberId: string, interviewId: number): Promise<void>{
         try{
+            const existsLike = await this.likeRepository.createQueryBuilder('l')
+                                    .where('l.memberId = :memberId',{memberId})
+                                    .andWhere('l.interviewId = :interviewId',{interviewId})
+                                    .getOne();
+
+            if(existsLike){
+                await this.likeRepository.createQueryBuilder('l')
+                                    .delete()
+                                    .where('memberId = :memberId', {memberId})
+                                    .andWhere('interviewId = :interviewId',{interviewId})
+                                    .execute();
+                return;
+            }
+
             const likeObj = this.likeRepository.create({
                 memberId: memberId,
                 interviewId: interviewId
@@ -55,7 +69,6 @@ export class MemberService {
                                 .where('i.id = :id', { id : interviewId })
                                 .getRawOne() as RowDataPacket;
 
-            console.log(interviewEntityForMemberId);
             const publishWithMemberId = interviewEntityForMemberId.memberId;
             await this.redisService.publish(publishWithMemberId);
 
@@ -101,6 +114,8 @@ export class MemberService {
      */
     async myInfoData(memberId: string): Promise<ResponseMyInfoDTO>{
        try{
+            let questionCount = 0;
+
             const result: RowDataPacket = await this.memberRepository
                 .createQueryBuilder('m')
                 .select(['m.id','m.thumbnail', 'm.nickName'])
@@ -121,16 +136,20 @@ export class MemberService {
                 .orderBy('questionCount','DESC')
                 .getRawMany();
             
-            const categoryInfoDTOs: ResponseCategoryInfoDTO[] = rowPacket.map(packet => ({
-                categoryName: packet.categoryName,
-                categoryCount: +packet.questionCount
-            }));
+            const categoryInfoDTOs: ResponseCategoryInfoDTO[] = rowPacket.map(packet => {
+                questionCount += Number(packet.questionCount);                
+                return ({
+                    categoryName: packet.categoryName,
+                    categoryCount: +packet.questionCount,
+                })
+            });
 
             const dto: ResponseMyInfoDTO = {
                 id: result.m_id,
                 thumbnail: result.m_thumbnail,
                 nickName: result.m_nick_name,
                 interviewCount: result.interviewCount,
+                questionCount: questionCount,
                 categoryInfo: categoryInfoDTOs
             };
             

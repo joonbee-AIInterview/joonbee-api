@@ -44,8 +44,7 @@ export class InterviewService {
                                    'm.thumbnail as thumbnail', 
                                    'm.nick_name as nickname', 
                                    'interview.category_name as categoryName',
-                                   'COUNT(l.member_id) as likeCount', 
-                                   'CASE WHEN EXISTS (SELECT 1 FROM `like` ll WHERE ll.interview_id = interview.id and ll.member_id = :memberId) then "Y" ELSE "N" END as bool'])
+                                   'COUNT(l.member_id) as likeCount'])
                               .innerJoin(Member, 'm', 'interview.member_id = m.id')
                               .leftJoin(Like, 'l', 'interview.id = l.interview_id')
                               .groupBy('interview.id, interview.member_id, m.thumbnail, interview.category_name')
@@ -58,8 +57,7 @@ export class InterviewService {
                                    'm.thumbnail as thumbnail', 
                                    'm.nick_name as nickname', 
                                    'interview.category_name as categoryName',
-                                   'COUNT(l.member_id) as likeCount', 
-                                   'CASE WHEN EXISTS (SELECT 1 FROM `like` ll WHERE ll.interview_id = interview.id and ll.member_id = :memberId) then "Y" ELSE "N" END as bool'])
+                                   'COUNT(l.member_id) as likeCount'])
                               .innerJoin(Member, 'm', 'interview.member_id = m.id')
                               .leftJoin(Like, 'l', 'interview.id = l.interview_id')
                               .groupBy('interview.id, interview.member_id, m.thumbnail, interview.category_name')
@@ -141,8 +139,7 @@ export class InterviewService {
                                    'm.thumbnail as thumbnail', 
                                    'm.nick_name as nickname', 
                                    'interview.category_name as categoryName',
-                                   'COUNT(l.member_id) as likeCount',
-                                   'CASE WHEN EXISTS (SELECT 1 FROM `like` ll WHERE ll.interview_id = interview.id and ll.member_id = :memberId) then "Y" ELSE "N" END as bool'])
+                                   'COUNT(l.member_id) as likeCount'])
                               .innerJoin(Member, 'm', 'interview.member_id = m.id')
                               .leftJoin(Like, 'l', 'interview.id = l.interview_id')
                               .where('interview.categoryName = :categoryName', { categoryName: categoryName })
@@ -156,8 +153,7 @@ export class InterviewService {
                                    'm.thumbnail as thumbnail', 
                                    'm.nick_name as nickname', 
                                    'interview.category_name as categoryName',
-                                   'COUNT(l.member_id) as likeCount',
-                                   'CASE WHEN EXISTS (SELECT 1 FROM `like` ll WHERE ll.interview_id = interview.id and ll.member_id = :memberId) then "Y" ELSE "N" END as bool'])
+                                   'COUNT(l.member_id) as likeCount'])
                               .innerJoin(Member, 'm', 'interview.member_id = m.id')
                               .leftJoin(Like, 'l', 'interview.id = l.interview_id')
                               .where('interview.categoryName = :categoryName', { categoryName: categoryName })

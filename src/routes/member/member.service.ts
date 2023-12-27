@@ -6,7 +6,7 @@ import { CustomError, PageResponseDTO } from 'src/common/config/common';
 import { Category } from 'src/entity/category.entity';
 import { Like } from 'src/entity/like.entity';
 import { Member } from 'src/entity/member.entity';
-import { Repository } from 'typeorm';
+import { DataSource, QueryRunner, Repository } from 'typeorm';
 import { RequestInterviewSaveDTO } from './dto/request.dto';
 import { Interview } from 'src/entity/interview.entity';
 import { InterviewAndQuestion } from 'src/entity/and.question.entity';
@@ -31,7 +31,8 @@ export class MemberService {
         private readonly categoryRepository: Repository<Category>,
         @InjectRepository(Cart)
         private readonly cartRepository: Repository<Cart>,
-        private readonly redisService: RedisService
+        private readonly redisService: RedisService,
+        private readonly dataSource: DataSource
     ){
         this.PAGE_SIZE = 6;
     }
@@ -114,7 +115,7 @@ export class MemberService {
      */
     async myInfoData(memberId: string): Promise<ResponseMyInfoDTO>{
        try{
-            let questionCount = 0;
+            let questionCount:number = 0;
 
             const result: RowDataPacket = await this.memberRepository
                 .createQueryBuilder('m')
@@ -148,7 +149,7 @@ export class MemberService {
                 id: result.m_id,
                 thumbnail: result.m_thumbnail,
                 nickName: result.m_nick_name,
-                interviewCount: result.interviewCount,
+                interviewCount: Number(result.interviewCount),
                 questionCount: questionCount,
                 categoryInfo: categoryInfoDTOs
             };
@@ -370,6 +371,37 @@ export class MemberService {
         }catch(error){
             console.error(error);
             throw new CustomError('사용자 면접정보 자세히 보기 실패',500);
+        }
+   }
+
+   /**
+    * @note 면접 정보 삭제 기능
+    */
+   async deleteByInterview(interviewId: number, memberId: string): Promise<boolean>{
+        const queryRunner: QueryRunner = this.dataSource.createQueryRunner();
+
+        await queryRunner.connect();
+        await queryRunner.startTransaction();
+
+        const questionList: InterviewAndQuestion[] = await queryRunner.manager.find(InterviewAndQuestion, {
+            where: { interviewId }
+        });
+
+        for (const interviewAndQuestion of questionList) {
+            await queryRunner.manager.remove(InterviewAndQuestion, interviewAndQuestion);
+        }
+
+        const interviewEntity: Interview = await queryRunner.manager.findOne(Interview, {
+            where: { memberId, id: interviewId }
+        });
+      
+        if (interviewEntity) {
+            await queryRunner.manager.remove(Interview, interviewEntity);
+            await queryRunner.commitTransaction();
+            return true;
+        } else {
+            await queryRunner.rollbackTransaction();
+            return false;
         }
    }
 }

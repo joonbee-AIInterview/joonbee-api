@@ -227,4 +227,23 @@ export class MemberController {
         response.json(apiResponse);
     }
 
+    @UseGuards(TokenAuthGuard)
+    @Delete('interview/delete')
+    async deleteInterview(
+        @Query('id') interviewId: number,
+        @Res() response: Response
+    ){
+        const memberId = response.locals.memberId;
+
+        const success = await this.memberService.deleteByInterview(interviewId, memberId);
+
+        const apiResponse: ApiResponse<string> = {
+            status: success ? 200 : 400,
+            data: success ? '성공' : '데이터가 존재하지 않습니다.'
+        };
+
+        response.status(apiResponse.status);
+        response.json(apiResponse);
+    }
+
 }

@@ -21,7 +21,9 @@ export class Interview{
     @JoinColumn({name: 'member_id'})
     member: Member;
   
-    @OneToMany(() => InterviewAndQuestion, (iaq) => iaq.interview)
+    @OneToMany(() => InterviewAndQuestion, (iaq) => iaq.interview,{
+        cascade: ['remove']
+    })
     interviewAndQuestions: InterviewAndQuestion[];
 
     @CreateDateColumn({ name: 'created_at', type: 'datetime', default: () => 'CURRENT_TIMESTAMP' })

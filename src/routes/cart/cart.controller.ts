@@ -12,11 +12,6 @@ import { Repository } from "typeorm";
 
 @Controller('api/cart')
 export class CartController {
-     /**
-     * Nest.js에서 @Res() 데커레이터를 사용하면 Express.js의 원시 Response객체에
-     * 접근하기 때문에 return (Next.js 내장 응답처리 메커니즘)을 무시하고,
-     * 원시 Express형식으로 응답을 보내야한다.
-     */
 
      constructor(
           private readonly cartService: CartService,
@@ -45,6 +40,7 @@ export class CartController {
           if (category === "" && subcategory === "") {
                data = await this.cartService.getMemberCarts(Number(page), memberId);
           } else if (category !== "" && subcategory === "") {
+               // 유효성 검사
                const check = await this.categoryRepository.findOne({
                     where: {
                          categoryName: category,
@@ -53,6 +49,7 @@ export class CartController {
                if (!check || check.categoryLevel !== 0) throw new CustomError('데이터베이스에 존재하지 않는 상위카테고리입니다. ', 404);
                data = await this.cartService.getMemberCartsByCategory(Number(page), memberId, category);
           } else {
+               // 유효성 검사
                const checkCategory = await this.categoryRepository.findOne({
                     where: {
                          categoryName: category,

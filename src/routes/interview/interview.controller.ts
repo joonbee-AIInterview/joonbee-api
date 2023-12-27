@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Query, Res, UseGuards } from '@nestjs/common';
+import { Controller, Get, Query, Res, UseGuards } from '@nestjs/common';
 import { InterviewService } from './interview.service';
 import { Response } from 'express';
 import { ApiResponse, CustomError } from 'src/common/config/common';
@@ -10,11 +10,6 @@ import { CheckLogin } from './const/check.login';
 
 @Controller('api/interview')
 export class InterviewController {
-     /**
-     * Nest.js에서 @Res() 데커레이터를 사용하면 Express.js의 원시 Response객체에
-     * 접근하기 때문에 return (Next.js 내장 응답처리 메커니즘)을 무시하고,
-     * 원시 Express형식으로 응답을 보내야한다.
-     */
 
      constructor(
           private readonly interviewService: InterviewService,

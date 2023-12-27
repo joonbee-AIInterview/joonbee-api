@@ -10,11 +10,6 @@ import { InjectRepository } from "@nestjs/typeorm";
 
 @Controller('api/question')
 export class QuestionController {
-     /**
-     * Nest.js에서 @Res() 데커레이터를 사용하면 Express.js의 원시 Response객체에
-     * 접근하기 때문에 return (Next.js 내장 응답처리 메커니즘)을 무시하고,
-     * 원시 Express형식으로 응답을 보내야한다.
-     */
 
      constructor(
           private readonly questionService: QuestionService,
@@ -59,7 +54,7 @@ export class QuestionController {
                          where: {
                               categoryName: subcategory,
                          },
-                    });
+                    }); 
                     if (!checkSubcategory || checkSubcategory.categoryLevel !== 1) throw new CustomError('데이터베이스에 존재하지 않는 하위카테고리입니다. ', 404);
                     data = await this.questionService.getQuestionsWithSubcategory(Number(page), category, subcategory);
                }

@@ -42,7 +42,7 @@ export class CartService {
                          'q.question_content'
                     ])
                     .innerJoin('question', 'q', 'cart.question_id = q.id').where('cart.member_id = :member_id', { member_id: memberId })
-                    .offset(skipNumber).limit(this.PAGE_SIZE).getRawMany();
+                    .orderBy('q.createdAt', 'DESC').offset(skipNumber).limit(this.PAGE_SIZE).getRawMany();
 
                return this.makeResult(rowPacket, countQuery);
           } catch (error) {
@@ -80,7 +80,7 @@ export class CartService {
                     .innerJoin('question', 'q', 'cart.question_id = q.id')
                     .leftJoin('category', 'upper_category', 'upper_category.id = (SELECT category_upper_id FROM category cat WHERE cat.category_name = cart.category_name)')
                     .where('cart.member_id = :member_id', { member_id: memberId }).andWhere('upper_category.category_name = :category_name', { category_name: category })
-                    .offset(skipNumber).limit(this.PAGE_SIZE).getRawMany();
+                    .orderBy('q.createdAt', 'DESC').offset(skipNumber).limit(this.PAGE_SIZE).getRawMany();
 
                return this.makeResult(rowPacket, countQuery[0]);
           } catch (error) {
@@ -107,7 +107,7 @@ export class CartService {
                         'q.question_content'
                     ])
                     .innerJoin('question', 'q', 'cart.question_id = q.id').where('cart.member_id = :member_id AND cart.category_name = :category_name', { member_id: memberId, category_name: subcategory })
-                    .offset(skipNumber).limit(this.PAGE_SIZE).getRawMany();
+                    .orderBy('q.createdAt', 'DESC').offset(skipNumber).limit(this.PAGE_SIZE).getRawMany();
 
                return this.makeResult(rowPacket, countQuery);
           } catch (error) {

@@ -2,12 +2,14 @@
  * 줘야하는 공통된 Data
  */
 export class ResponseInterviewsWithLikeMemberQuestionData {
+     bool: string;
      interviewId: number;
      memberId: string;
      nickname: string;
      thumbnail: string;
      categoryName: string;
      likeCount: number;
+     
 }
 export class ResponseQuestionData {
      questionId: number;

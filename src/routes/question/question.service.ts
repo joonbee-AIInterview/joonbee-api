@@ -5,7 +5,7 @@ import { Category } from "src/entity/category.entity";
 import { Question } from "src/entity/question.entity";
 import { Repository } from "typeorm";
 import { CustomError } from "src/common/config/common";
-import { ResponseGPTQuestionData, ResponseGPTQuestionsDTO, ResponseQuestionsDTO, ResponseQuestionsWithCategoryData } from "./dto/response.dto";
+import { ResponseGPTQuestionData, ResponseGPTQuestionsDTO, ResponseQuestionsDTO, ResponseQuestionsData, ResponseQuestionsInfoDTO, ResponseQuestionsWithCategoryData } from "./dto/response.dto";
 
 
 @Injectable()
@@ -40,7 +40,7 @@ export class QuestionService {
                     .getRawMany();
                return this.makeResult(rowPacket, countQuery);
           } catch(error) {
-               console.log('getQuestions ERROR question.service 148\n' + error);
+               console.log('getQuestions ERROR question.service 43\n' + error);
                throw new CustomError('메인 페이지 하단 디폴트 랜덤 질문 정보 불러오기 실패', 500);
           }
      }
@@ -83,7 +83,7 @@ export class QuestionService {
                     .getRawMany();
                return this.makeResult(rowPacket, countQuery);
           } catch(error) {
-               console.log('getQuestionsWithCategory ERROR question.service 148\n' + error);
+               console.log('getQuestionsWithCategory ERROR question.service 86\n' + error);
                throw new CustomError('메인 페이지 하단 상위카테고리 랜덤 질문 정보 불러오기 실패', 500);
           }
      }
@@ -120,7 +120,7 @@ export class QuestionService {
                     .getRawMany();
                return this.makeResult(rowPacket, countQuery);
           } catch(error) {
-               console.log('getQuestionsWithSubcategory ERROR question.service 148\n' + error);
+               console.log('getQuestionsWithSubcategory ERROR question.service 123\n' + error);
                throw new CustomError('메인 페이지 하단 서브카테고리 랜덤 질문 정보 불러오기 실패', 500);
           }
      }
@@ -142,7 +142,7 @@ export class QuestionService {
                throw new CustomError('GPT질문들 가져오기 실패', 500);
           }
      }
-     
+
      /**
       * questionsWithCategoryDTOs => result 공통메소드
       */
@@ -159,6 +159,45 @@ export class QuestionService {
                result: questionsWithCategoryDTOs
           }
           return result;
+     }
+
+     
+     
+     /**
+      * @api 사용자 질문 장바구니중 선택한 질문들을 그대로 반환한다.
+      */
+     async findMemberCheckQuestions(memberId: string, questionIds: number[]): Promise<ResponseQuestionsInfoDTO> {
+          try {     
+               for (let i = 0; i < questionIds.length; i++) {
+                    const questionExists = await this.questionRepository.exist({ where: { id: questionIds[i] } });
+                    if (!questionExists) throw new CustomError(`${questionIds[i]}이 존재하지 않습니다. `, 400);
+               }
+
+               const rowPacket: RowDataPacket[] = await this.questionRepository.createQueryBuilder('q')
+                    .select([
+                         'q.id AS questionId',
+                         'c.category_name AS category',
+                         '(SELECT c2.category_name FROM category c2 WHERE c2.id = c.category_upper_id) AS subcategory',
+                         'q.question_content AS questionContent',
+                    ])
+                    .innerJoin('q.category', 'c')
+                    .where('q.id IN (:...questionIds)', { questionIds }) // 수정된 WHERE 절
+                    .getRawMany();
+
+               const questionsDTOs: ResponseQuestionsData[] = rowPacket.map(packet => ({
+                    questionId: packet.questionId,
+                    category: packet.category,
+                    subcategory: packet.subcategory,
+                    questionContent: packet.questionContent,
+               }));
+               const result: ResponseQuestionsInfoDTO = {
+                    result: questionsDTOs,
+               }
+               return result;
+          } catch (error) {
+               console.log('findMemberCheckQuestions ERROR cart.service 100\n' + error);
+               throw new CustomError('선택한 사용자 질문 인터뷰에 저장하기 실패', 500);
+          }
      }
 
      /**

@@ -404,4 +404,30 @@ export class MemberService {
             return false;
         }
    }
+
+   /**
+    * @note 사용자 장바구니 데이터 삭제 기능
+    */
+   async deleteByCartOne(questionId: number, memberId: string): Promise<boolean> {
+        const queryRunner: QueryRunner = this.dataSource.createQueryRunner();
+
+        await queryRunner.connect();
+        await queryRunner.startTransaction();
+
+        const cartData = await queryRunner.manager.findOne(Cart,{
+            where: {
+                questionId,
+                memberId
+            }
+        });
+
+        if(cartData){
+            await queryRunner.manager.remove(Cart, cartData);
+            await queryRunner.commitTransaction();
+            return true;
+        }else {
+            await queryRunner.rollbackTransaction();
+            return false;
+        }
+   }
 }

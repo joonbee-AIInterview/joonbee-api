@@ -1,4 +1,4 @@
-import { Controller,Get, ParseArrayPipe, Query, Res, UseGuards, ValidationPipe } from "@nestjs/common";
+import { Body, Controller,Get, ParseArrayPipe, Query, Res, UseGuards, ValidationPipe } from "@nestjs/common";
 import { QuestionService } from "src/routes/question/question.service";
 import { ApiResponse, CustomError } from "src/common/config/common";
 import { ResponseGPTQuestionsDTO, ResponseQuestionsDTO, ResponseQuestionsInfoDTO } from "./dto/response.dto";

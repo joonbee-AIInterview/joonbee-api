@@ -4,8 +4,9 @@
 export class ResponseQuestionsWithCategoryData {
      questionId: number;
      categoryId: number;
-     questionContent: string;
+     categoryName: string;
      subcategoryName: string;
+     questionContent: string;
 }
 
 // 메인 페이지 하단API DTO

@@ -30,11 +30,24 @@ export class QuestionService {
           try {
                const countQuery: RowDataPacket = await this.questionRepository.createQueryBuilder('question')
                     .select('COUNT(question.id)', 'count').getRawOne();
-               const rowPacket: RowDataPacket[] = await this.questionRepository.createQueryBuilder('question')
-                    .select(['question.id AS questionId','category.id AS categoryId','question.question_content AS questionContent','category.category_name AS categoryName'])
-                    .leftJoinAndSelect('question.category', 'category')
-                    .orderBy('questionId').offset(skipNumber).limit(this.PAGE_SIZE).getRawMany();
-               return this.makeResult(rowPacket, countQuery);
+               const rowPacket: RowDataPacket[] = await this.questionRepository.createQueryBuilder('q')
+                    .select('q.id AS questionId, c.id AS categoryId, q.questionContent AS questionContent, parent.categoryName AS categoryName, c.categoryName AS subcategoryName')
+                    .innerJoin(Category, 'c', 'q.category_id = c.id')
+                    .innerJoin(Category, 'parent', 'c.category_upper_id = parent.id')
+                    .orderBy('q.id').offset(skipNumber).limit(this.PAGE_SIZE).getRawMany();
+                    
+               const questionsWithCategoryDTOs: ResponseQuestionsWithCategoryData[] = rowPacket.map(packet => ({
+                    questionId: Number(packet.questionId),
+                    categoryId: packet.categoryId,
+                    categoryName: packet.categoryName,
+                    subcategoryName: packet.subcategoryName,
+                    questionContent: packet.questionContent,
+               }));
+               const result: ResponseQuestionsDTO = {
+                    total: Number(countQuery.count),
+                    result: questionsWithCategoryDTOs
+               }
+               return result;
           } catch(error) {
                console.log('getQuestions ERROR question.service 43\n' + error);
                throw new CustomError('메인 페이지 하단 디폴트 랜덤 질문 정보 불러오기 실패', 500);
@@ -71,13 +84,12 @@ export class QuestionService {
                     .orderBy('questionId').offset(skipNumber).limit(this.PAGE_SIZE).getRawMany();
 
                const questionsWithCategoryDTOs: ResponseQuestionsWithCategoryData[] = rowPacket.map(packet => ({
-                    questionId: packet.questionId,
+                    questionId: Number(packet.questionId),
                     categoryId: packet.categoryId,
                     categoryName: categoryName,
                     subcategoryName: packet.subcategoryName,
                     questionContent: packet.questionContent,
                }));
-     
                const result: ResponseQuestionsDTO = {
                     total: Number(countQuery.count),
                     result: questionsWithCategoryDTOs
@@ -115,14 +127,14 @@ export class QuestionService {
                               'category',
                               'question.category_id = category.id')
                     .orderBy('questionId').offset(skipNumber).limit(this.PAGE_SIZE).getRawMany();
+
                const questionsWithCategoryDTOs: ResponseQuestionsWithCategoryData[] = rowPacket.map(packet => ({
-                    questionId: packet.questionId,
+                    questionId: Number(packet.questionId),
                     categoryId: packet.categoryId,
                     categoryName: categoryName,
                     subcategoryName: packet.subcategoryName,
                     questionContent: packet.questionContent,
                }));
-     
                const result: ResponseQuestionsDTO = {
                     total: Number(countQuery.count),
                     result: questionsWithCategoryDTOs
@@ -144,7 +156,6 @@ export class QuestionService {
                     .innerJoin('Category', 'c', 'q.category_id = c.id AND c.category_name IN (:...categoryNames)', { categoryNames: subcategoryName })
                     .where('q.writer = :writer', { writer: 'gpt' })
                     .orderBy('RAND()').limit(parseInt(questionCount)).getRawMany(); // RAND(): 추후 최적화 필요!
-
                return this.makeGPTResult(memberId, categoryName, rowPacket);
           } catch (error) {
                console.log('getQuestionsByGPT ERROR question.service 123\n' + error);
@@ -152,27 +163,6 @@ export class QuestionService {
           }
      }
 
-     /**
-      * questionsWithCategoryDTOs => result 공통메소드
-      */
-     makeResult(rowPacket: RowDataPacket[], countQuery: RowDataPacket): ResponseQuestionsDTO {
-          const questionsWithCategoryDTOs: ResponseQuestionsWithCategoryData[] = rowPacket.map(packet => ({
-               questionId: packet.questionId,
-               categoryId: packet.categoryId,
-               //categoryName: , 
-               subcategoryName: packet.subcategoryName,
-               questionContent: packet.questionContent,
-          }));
-
-          const result: ResponseQuestionsDTO = {
-               total: Number(countQuery.count),
-               result: questionsWithCategoryDTOs
-          }
-          return result;
-     }
-
-     
-     
      /**
       * @api 사용자 질문 장바구니중 선택한 질문들을 그대로 반환한다.
       */
@@ -190,8 +180,7 @@ export class QuestionService {
                          '(SELECT c2.category_name FROM category c2 WHERE c2.id = c.category_upper_id) AS subcategory',
                          'q.question_content AS questionContent',
                     ])
-                    .innerJoin('q.category', 'c')
-                    .where('q.id IN (:...questionIds)', { questionIds }).getRawMany();
+                    .innerJoin('q.category', 'c').where('q.id IN (:...questionIds)', { questionIds }).getRawMany();
 
                const questionsDTOs: ResponseQuestionsData[] = rowPacket.map(packet => ({
                     questionId: packet.questionId,

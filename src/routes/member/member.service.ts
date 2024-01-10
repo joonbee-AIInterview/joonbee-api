@@ -380,33 +380,43 @@ export class MemberService {
    async deleteByInterview(interviewId: number, memberId: string): Promise<boolean>{
         const queryRunner: QueryRunner = this.dataSource.createQueryRunner();
 
-        await queryRunner.connect();
-        await queryRunner.startTransaction();
-
-        const questionList: InterviewAndQuestion[] = await queryRunner.manager.find(InterviewAndQuestion, {
-            where: { interviewId }
-        });
-
-        for (const interviewAndQuestion of questionList) {
-            await queryRunner.manager.remove(InterviewAndQuestion, interviewAndQuestion);
-        }
-
-        const interviewEntity: Interview = await queryRunner.manager.findOne(Interview, {
-            where: { memberId, id: interviewId }
-        });
-      
-        if (interviewEntity) {
-            await queryRunner.manager.remove(Interview, interviewEntity);
-            await queryRunner.commitTransaction();
-            return true;
-        } else {
+        try{
+            await queryRunner.connect();
+            await queryRunner.startTransaction();
+    
+            const questionList: InterviewAndQuestion[] = await queryRunner.manager.find(InterviewAndQuestion, {
+                where: { interviewId }
+            });
+    
+    
+            for (const interviewAndQuestion of questionList) {
+                await queryRunner.manager.remove(InterviewAndQuestion, interviewAndQuestion);
+            }
+    
+            const interviewEntity: Interview = await queryRunner.manager.findOne(Interview, {
+                where: { memberId, id: interviewId }
+            });
+          
+            if (interviewEntity) {
+                await queryRunner.manager.remove(Interview, interviewEntity);
+                await queryRunner.commitTransaction();
+                return true;
+            } else {
+                await queryRunner.rollbackTransaction();
+                return false;
+            }
+        }catch(error){
             await queryRunner.rollbackTransaction();
-            return false;
+            console.error(error);
+            throw new CustomError('인터뷰 삭제 중 에러', 500);
+        }finally{
+            await queryRunner.release();
         }
    }
 
    /**
     * @note 사용자 장바구니 데이터 삭제 기능
+    * @deprecated
     */
    async deleteByCartOne(questionId: number, memberId: string): Promise<boolean> {
         const queryRunner: QueryRunner = this.dataSource.createQueryRunner();

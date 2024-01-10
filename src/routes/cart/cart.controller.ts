@@ -12,6 +12,11 @@ import { Repository } from "typeorm";
 
 @Controller('api/cart')
 export class CartController {
+     /**
+     * Nest.js에서 @Res() 데커레이터를 사용하면 Express.js의 원시 Response객체에
+     * 접근하기 때문에 return (Next.js 내장 응답처리 메커니즘)을 무시하고,
+     * 원시 Express형식으로 응답을 보내야한다.
+     */
 
      constructor(
           private readonly cartService: CartService,
@@ -71,6 +76,7 @@ export class CartController {
           }
           response.json(apiResponse);
         } catch (error) {
+               console.log('getMemberCarts 컨트롤러 에러발생: ' + error);
              throw new CustomError('알 수 없는 에러 : ' + error,500);
         }
      }
@@ -99,6 +105,7 @@ export class CartController {
                 }
                response.json(apiResponse);
           } catch (error) {
+               console.log('insertMemberQuestionIntoCart 컨트롤러 에러발생: ' + error);
                throw new CustomError('알 수 없는 에러 : ' + error,500);
           }
      }

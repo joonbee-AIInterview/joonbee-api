@@ -38,7 +38,7 @@ export class InterviewService {
                     if (sort === 'like') {
                          rowPacket = await this.interviewRepository
                               .createQueryBuilder('interview')
-                              .select(['interview.id as interviewId',
+                              .select(['interview.id as interviewID',
                                    'interview.member_id as memberId',
                                    'm.thumbnail as thumbnail', 
                                    'm.nick_name as nickname', 
@@ -52,7 +52,7 @@ export class InterviewService {
                     } else {
                          rowPacket = await this.interviewRepository
                               .createQueryBuilder('interview')
-                              .select(['interview.id as interviewId',
+                              .select(['interview.id as interviewID',
                                    'interview.member_id as memberId',
                                    'm.thumbnail as thumbnail', 
                                    'm.nick_name as nickname', 
@@ -66,20 +66,21 @@ export class InterviewService {
                     }
 
                     interviewsWithQuestionCategoryMemberDTOs = await Promise.all(rowPacket.map(async packet => {
-                         const { interviewId, memberId, thumbnail, categoryName, likeCount, nickname } = packet;
+                         const { interviewID, memberId, thumbnail, categoryName, likeCount, nickname } = packet;
                          const questionsQuery = await this.interviewAndQuestionRepository
                               .createQueryBuilder('iaq')
                               .select(['q.id as questionId','q.question_content as questionContent'])
                               .innerJoin(Question, 'q', 'iaq.question_id = q.id')
-                              .where('iaq.interview_id = :interviewId', { interviewId }).getRawMany();
+                              .where('iaq.interview_id = :interviewID', { interviewID }).getRawMany();
                          const questions = questionsQuery.map(({ questionId, questionContent }) => ({questionId, questionContent,}));
+                         const interviewId = Number(interviewID);
                          return {interviewId, memberId, nickname, thumbnail, categoryName, likeCount, questions};
                     }));
                } else {
                     if (sort === 'like') {
                          rowPacket = await this.interviewRepository.createQueryBuilder('i')
                               .select([
-                                   'i.id as interviewId',
+                                   'i.id as interviewID',
                                    'i.member_id as memberId',
                                    'm.thumbnail as thumbnail', 
                                    'm.nick_name as nickname', 
@@ -96,7 +97,7 @@ export class InterviewService {
                     } else {
                          rowPacket = await this.interviewRepository.createQueryBuilder('i')
                               .select([
-                                   'i.id as interviewId',
+                                   'i.id as interviewID',
                                    'i.member_id as memberId',
                                    'm.thumbnail as thumbnail', 
                                    'm.nick_name as nickname', 
@@ -113,14 +114,15 @@ export class InterviewService {
                     }
 
                     interviewsWithQuestionCategoryMemberDTOs = await Promise.all(rowPacket.map(async packet => {
-                         const { interviewId, memberId, thumbnail, categoryName, likeCount, nickname, bool } = packet;
+                         const { interviewID, memberId, thumbnail, categoryName, likeCount, nickname, bool } = packet;
                          const liked = Boolean(bool);
                          const questionsQuery = await this.interviewAndQuestionRepository
                               .createQueryBuilder('iaq')
                               .select(['q.id as questionId','q.question_content as questionContent'])
                               .innerJoin(Question, 'q', 'iaq.question_id = q.id')
-                              .where('iaq.interview_id = :interviewId', { interviewId }).getRawMany();
+                              .where('iaq.interview_id = :interviewID', { interviewID }).getRawMany();
                          const questions = questionsQuery.map(({ questionId, questionContent }) => ({questionId, questionContent,}));
+                         const interviewId = Number(interviewID);
                          return {interviewId, liked, memberId, nickname, thumbnail, categoryName, likeCount, questions};
                     }));
                }             
@@ -152,7 +154,7 @@ export class InterviewService {
                     if (sort === 'like') {
                          rowPacket = await this.interviewRepository
                               .createQueryBuilder('interview')
-                              .select(['interview.id as interviewId',
+                              .select(['interview.id as interviewID',
                                    'interview.member_id as memberId',
                                    'm.thumbnail as thumbnail', 
                                    'm.nick_name as nickname', 
@@ -167,7 +169,7 @@ export class InterviewService {
                     } else {
                          rowPacket = await this.interviewRepository
                               .createQueryBuilder('interview')
-                              .select(['interview.id as interviewId',
+                              .select(['interview.id as interviewID',
                                    'interview.member_id as memberId',
                                    'm.thumbnail as thumbnail', 
                                    'm.nick_name as nickname', 
@@ -182,12 +184,13 @@ export class InterviewService {
                     }
 
                     interviewsWithQuestionCategoryMemberDTOs = await Promise.all(rowPacket.map(async packet => {
-                         const { interviewId, memberId, thumbnail, categoryName, likeCount, nickname } = packet;
+                         const { interviewID, memberId, thumbnail, categoryName, likeCount, nickname } = packet;
                          const questionsQuery = await this.interviewAndQuestionRepository
                               .createQueryBuilder('iaq')
                               .select(['q.id as questionId','q.question_content as questionContent',])
                               .innerJoin(Question, 'q', 'iaq.question_id = q.id')
-                              .where('iaq.interview_id = :interviewId', { interviewId }).getRawMany();
+                              .where('iaq.interview_id = :interviewID', { interviewID }).getRawMany();
+                         const interviewId = Number(interviewID);
                          const questions = questionsQuery.map(({ questionId, questionContent }) => ({questionId, questionContent,}));
                          return {interviewId, memberId, nickname, thumbnail, categoryName, likeCount, questions};
                     }));
@@ -195,7 +198,7 @@ export class InterviewService {
                     if (sort === 'like') {
                          rowPacket = await this.interviewRepository.createQueryBuilder('i')
                               .select([
-                                   'i.id as interviewId',
+                                   'i.id as interviewID',
                                    'i.member_id as memberId',
                                    'm.thumbnail as thumbnail', 
                                    'm.nick_name as nickname', 
@@ -213,7 +216,7 @@ export class InterviewService {
                     } else {
                          rowPacket = await this.interviewRepository.createQueryBuilder('i')
                               .select([
-                                   'i.id as interviewId',
+                                   'i.id as interviewID',
                                    'i.member_id as memberId',
                                    'm.thumbnail as thumbnail', 
                                    'm.nick_name as nickname', 
@@ -229,14 +232,14 @@ export class InterviewService {
                               .groupBy('i.id, i.member_id, m.thumbnail, i.category_name').setParameters({ memberId: memberId, categoryName: categoryName})
                               .orderBy('i.createdAt', 'DESC').offset((page - 1) * this.PAGE_SIZE).limit(this.PAGE_SIZE).getRawMany();
                     }
-
                     interviewsWithQuestionCategoryMemberDTOs = await Promise.all(rowPacket.map(async packet => {
-                         const { interviewId, memberId, thumbnail, categoryName, likeCount, nickname, liked } = packet;
+                         const { interviewID, memberId, thumbnail, categoryName, likeCount, nickname, liked } = packet;
                          const questionsQuery = await this.interviewAndQuestionRepository
                               .createQueryBuilder('iaq')
                               .select(['q.id as questionId','q.question_content as questionContent',])
                               .innerJoin(Question, 'q', 'iaq.question_id = q.id')
-                              .where('iaq.interview_id = :interviewId', { interviewId }).getRawMany();
+                              .where('iaq.interview_id = :interviewID', { interviewID }).getRawMany();
+                         const interviewId = Number(interviewID);
                          const questions = questionsQuery.map(({ questionId, questionContent }) => ({questionId, questionContent,}));
                          return {interviewId, liked, memberId, nickname, thumbnail, categoryName, likeCount, questions};
                     }));

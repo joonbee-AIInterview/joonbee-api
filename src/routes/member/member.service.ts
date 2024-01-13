@@ -11,7 +11,7 @@ import { RequestInterviewSaveDTO } from './dto/request.dto';
 import { Interview } from 'src/entity/interview.entity';
 import { InterviewAndQuestion } from 'src/entity/and.question.entity';
 import { plainToClass } from 'class-transformer';
-import { ResponseCartDTO, ResponseCategoryInfoDTO, ResponseInterviewCategoryDTO, ResponseInterviewCategoryData, ResponseInterviewDetail, ResponseMyInfoDTO, ResponseProfileDTO, ResponseQuestionInfo } from './dto/response.dto';
+import { ResponseCartDTO, ResponseCategoryInfoDTO, ResponseInterAndQuestionInfo, ResponseInterviewCategoryDTO, ResponseInterviewCategoryData, ResponseInterviewDetail, ResponseMyInfoDTO, ResponseProfileDTO, ResponseQuestionInfo } from './dto/response.dto';
 import { Cart } from 'src/entity/cart.entity';
 
 @Injectable()
@@ -81,6 +81,7 @@ export class MemberService {
 
     /**
      * @note interview 엔티티를 먼저 저장하고, interview_and_question 데이터를 저장한다.
+     * @deprecated
      */
     async insertInterview(memberId: string, questionInfo: RequestInterviewSaveDTO): Promise<void>{
         try{
@@ -107,6 +108,46 @@ export class MemberService {
         }catch(error){
             console.log('insertInterview ERROR member.serivce 40 \n' + error);
             throw new CustomError('면접 저장 실패',500);
+        }
+    }
+    /*
+    *  @note - interview 저장하는거 트랜잭션 묶은 버전
+    */
+    async insertInsertVer2(memberId: string, questionInfo: RequestInterviewSaveDTO): Promise<void>{
+        const queryRunner: QueryRunner = this.dataSource.createQueryRunner();
+        
+        try{
+
+            await queryRunner.connect();
+            await queryRunner.startTransaction();
+
+            const interview = queryRunner.manager.create(Interview, {
+                memberId: memberId,
+                categoryName: questionInfo.categoryName,
+                gptOpinion: questionInfo.gptOpinion,
+            });
+
+            const interviewEntity = await queryRunner.manager.save(interview);
+
+            const interviewAndQuestions = questionInfo.questions.map((data) => (
+                queryRunner.manager.create(InterviewAndQuestion, {
+                    interviewId: interviewEntity.id,
+                    questionId: data.questionId,
+                    answerContent: data.answerContent,
+                    commentary: data.commentary,
+                    evaluation: data.evaluation
+                })
+            ));
+
+            await queryRunner.manager.save(interviewAndQuestions);
+            await queryRunner.commitTransaction();
+
+        }catch(error){
+            await queryRunner.rollbackTransaction();
+            console.error(error);
+            throw new CustomError('면접 데이터 생성 중 에러 발생',500);
+        } finally {
+            await queryRunner.release();
         }
     }
 
@@ -248,6 +289,17 @@ export class MemberService {
     */
    async insertCartService(memberId: string, questionId: number, categoryName: string): Promise<void>{
         try{
+            const cartExist = await this.cartRepository.findOne({ // 복합 인덱스라 상관업승ㅁ
+                where: {
+                    memberId,
+                    questionId
+                }
+            });
+
+            if(cartExist){
+                throw new CustomError("장바구니 데이터가 존재합니다.",400);
+            }
+
             const cartObj = this.cartRepository.create({
                 memberId,
                 questionId,
@@ -255,8 +307,12 @@ export class MemberService {
             });
             
             this.cartRepository.save(cartObj);
+
         }catch(error){
             console.log('insertInterview ERROR member.serivce 222\n' + error);
+            if(error instanceof CustomError){
+                throw new CustomError(error.message, error.statusCode);
+            }
             throw new CustomError('사용자 장바구니 저장실패',500);
         }
    }
@@ -341,20 +397,23 @@ export class MemberService {
    /**
     * @note 마이페이지에서 자신의 면접 정보 조회
     */
-   async findByForMyInterviewData(interviewId: number): Promise<ResponseInterviewDetail>{
+   async findByForMyInterviewData(interviewId: number, memberId: string): Promise<ResponseInterviewDetail>{
         try{
             const questionInfos: ResponseQuestionInfo[] = [];
            
             const data: RowDataPacket[] = await this.interviewRepository
                 .createQueryBuilder('i')
-                .select(['i.gpt_opinion AS gptOpinion'])
+                .select(['i.gpt_opinion AS gptOpinion', 'i.member_id AS memberId'])
                 .addSelect("q.question_content", "questionContent")
                 .addSelect("q.id","id")
                 .innerJoin('i.interviewAndQuestions','iaq')
                 .innerJoin('iaq.question','q')
                 .where('i.id = :interviewId', {interviewId})
                 .getRawMany();
-
+            
+            if(!data.length) throw new CustomError('존재하지 않는 면접정보입니다.',400);
+            if(data[0].memberId !== memberId) throw new CustomError('해당 면접정보의 주인이 아닙니다.',400);
+            
             data.forEach((result) => {
                 questionInfos.push({
                     questionId : +result.id,
@@ -370,6 +429,9 @@ export class MemberService {
             
         }catch(error){
             console.error(error);
+            if(error instanceof CustomError){
+                throw new CustomError(error.message, error.statusCode);
+            }
             throw new CustomError('사용자 면접정보 자세히 보기 실패',500);
         }
    }
@@ -438,6 +500,43 @@ export class MemberService {
         }else {
             await queryRunner.rollbackTransaction();
             return false;
+        }
+   }
+
+   /**
+    * @note - 면접 데이터에 존재하는 문제들에 대한 정보 자세히보기
+    */
+   async interviewQuestionDetail(interviewId: number, questionId: number,memberId: string): Promise<ResponseInterAndQuestionInfo>{
+
+        try{
+            const entitiyData: RowDataPacket = await this.andQuestionRepository.createQueryBuilder('iaq')
+                        .select(['iaq.*','interview.member_id'])
+                        .innerJoin('iaq.interview','interview')
+                        .where('iaq.interviewId = :interviewId',{interviewId})
+                        .andWhere('iaq.questionId = :questionId',{questionId})
+                        .getRawOne();
+
+            console.log(entitiyData);
+
+            if(memberId !== entitiyData.member_id) throw new CustomError('해당 면접의 주인이 아닙니다.',400);
+            if(!entitiyData) throw new CustomError('존재하는 데이터입니다.',400);
+
+            const response: ResponseInterAndQuestionInfo = {
+                interviewId: entitiyData.interview_id,
+                questionId: entitiyData.question_id,
+                answerContent: entitiyData.answer_content,
+                commentary: entitiyData.commentary,
+                evaluation: entitiyData.evaluation
+            }
+
+            return response;
+
+        }catch(error){
+            console.error(error);
+            if(error instanceof CustomError){
+                throw new CustomError(error.message, error.statusCode);
+            }
+            throw new CustomError('면접 문제에 대한 정보 읽기 에러',500);
         }
    }
 }

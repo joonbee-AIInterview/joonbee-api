@@ -7,7 +7,7 @@ import { TokenAuthGuard } from 'src/common/config/auth';
 import { Request, Response } from 'express';
 import { ApiBody } from '@nestjs/swagger';
 import { Member } from 'src/entity/member.entity';
-import { ResponseCartDTO, ResponseInterviewCategoryDTO, ResponseInterviewDetail, ResponseMyInfoDTO, ResponseProfileDTO } from './dto/response.dto';
+import { ResponseCartDTO, ResponseInterAndQuestionInfo, ResponseInterviewCategoryDTO, ResponseInterviewDetail, ResponseMyInfoDTO, ResponseProfileDTO } from './dto/response.dto';
  
 @Controller('api/member')
 export class MemberController {
@@ -45,7 +45,7 @@ export class MemberController {
     ){
         const memberId = response.locals.memberId;
 
-        const data: ResponseInterviewDetail = await this.memberService.findByForMyInterviewData(interviewId);
+        const data: ResponseInterviewDetail = await this.memberService.findByForMyInterviewData(interviewId,memberId);
         
         const apiResponse: ApiResponse<ResponseInterviewDetail> = {
             status: 200,
@@ -127,6 +127,25 @@ export class MemberController {
         response.json(apiResponse);
     }
 
+    /**
+     * 면접 질문 정보보기
+     */
+    @UseGuards(TokenAuthGuard)
+    @Get('interview/question/detail')
+    async questionInfo(
+        @Query('interviewId',ParseIntPipe) intreviewId: number,
+        @Query('questionId', ParseIntPipe) questionId: number,
+        @Res() response: Response
+    ){
+        const memberId = response.locals.memberId;
+        const data = await this.memberService.interviewQuestionDetail(intreviewId, questionId, memberId);
+        
+        const apiResponse: ApiResponse<ResponseInterAndQuestionInfo> = {
+            status: 200,
+            data
+        }
+        response.json(apiResponse);
+    }
 
     /**
      * @api 장바구니 기능
@@ -142,7 +161,7 @@ export class MemberController {
         const {questionId, categoryName} = dto;
         
         await this.memberService.insertCartService(memberId, questionId, categoryName);
-    
+
         const apiResponse: ApiResponse<string> = {
             status: 200,
             data: '성공'
@@ -199,7 +218,7 @@ export class MemberController {
                 categoryName,
                 questions
             }
-            this.memberService.insertInterview(memberId, data);
+            this.memberService.insertInsertVer2(memberId, data);
     
             const apiResponse: ApiResponse<string> = {
                 status: 200,

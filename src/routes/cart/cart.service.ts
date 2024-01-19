@@ -37,17 +37,19 @@ export class CartService {
                const rowPacket: RowDataPacket[] = await this.cartRepository.createQueryBuilder('cart')
                     .select([
                          'cart.question_id',
-                         '(SELECT category_name FROM category WHERE id = (SELECT category_upper_id FROM category WHERE category_name = cart.category_name)) AS category_name',
+                         'c.category_name AS category_name',
                          'cart.category_name AS subcategory_name',
                          'q.question_content'
                     ])
-                    .innerJoin('question', 'q', 'cart.question_id = q.id').where('cart.member_id = :member_id', { member_id: memberId })
+                    .innerJoin('question', 'q', 'cart.question_id = q.id')
+                    .innerJoin('category', 'c', 'c.id = (SELECT category_upper_id FROM category WHERE category_name = cart.category_name)')
+                    .where('cart.member_id = :member_id', { member_id: memberId })
                     .orderBy('q.createdAt', 'DESC').offset(skipNumber).limit(this.PAGE_SIZE).getRawMany();
 
                return this.makeResult(rowPacket, countQuery);
           } catch (error) {
                console.log('getMemberCarts ERROR cart.service 53\n' + error);
-               throw new CustomError('면접 전, 사용자의 장바구니 질문 데이터 전체 조회 실패', 500);
+               throw new CustomError('getMemberCarts 서비스 로직 에러: ', 500);
           }
      }
 
@@ -55,6 +57,7 @@ export class CartService {
       * @note 사용자 장바구니에 있는 모든 질문들을 상위 카테고리별로 10개씩 가져온다.
       */
      async getMemberCartsByCategory(page: number, memberId: string, category: string): Promise<ResponseCartQuestionsDTO> {
+          if (!['fe', 'be', 'language', 'cs', 'mobile', 'etc'].includes(category)) throw new CustomError('존재하지 않는 상위 카테고리입니다. ', 404);
           const skipNumber = (page - 1) * this.PAGE_SIZE;
           try {
                const countQuery = await this.cartRepository.query(`
@@ -85,7 +88,7 @@ export class CartService {
                return this.makeResult(rowPacket, countQuery[0]);
           } catch (error) {
                console.log('getMemberCartsByCategory ERROR cart.service 100\n' + error);
-               throw new CustomError('면접 전, 사용자의 장바구니 상위카테고리 필터 질문 데이터 전체체 조회 실패', 500);
+               throw new CustomError('getMemberCartsByCategory 서비스 로직 에러: ', 500);
           }
      }
 
@@ -93,6 +96,21 @@ export class CartService {
       * @note 사용자 장바구니에 있는 모든 질문들을 하위 카테고리별로 10개씩 가져온다.
       */
      async getMemberCartsBySubcategory(page: number, memberId: string, category: string, subcategory: string): Promise<ResponseCartQuestionsDTO> {
+          if (!['fe', 'be', 'language', 'cs', 'mobile', 'etc'].includes(category)) throw new CustomError('존재하지 않는 상위 카테고리입니다. ', 400);
+          const checkSubcategory = await this.categoryRepository.findOne({
+               where: {
+                    categoryName: subcategory,
+               },
+          });
+          const checkCategory = await this.categoryRepository.findOne({
+               where: {
+                    categoryName: category,
+               }
+          });
+
+          if (!checkSubcategory || checkSubcategory.categoryLevel !== 1) throw new CustomError('존재하지 않는 하위 카테고리입니다. ', 400);
+          if (checkCategory.id !== checkSubcategory.categoryUpperId) throw new CustomError('상위카테고리에 속하지 않는 하위카테고리 입니다. ', 400);
+          
           const skipNumber = (page - 1) * this.PAGE_SIZE;
           try {
                const countQuery: RowDataPacket = await this.cartRepository.createQueryBuilder('cart')
@@ -102,11 +120,13 @@ export class CartService {
                const rowPacket: RowDataPacket[] = await this.cartRepository.createQueryBuilder('cart')
                     .select([
                         'cart.question_id',
-                        '(SELECT category_name FROM category WHERE id = (SELECT category_upper_id FROM category WHERE category_name = cart.category_name)) AS category_name',
+                        'c.category_name AS category_name',
                         'cart.category_name AS subcategory_name',
                         'q.question_content'
                     ])
-                    .innerJoin('question', 'q', 'cart.question_id = q.id').where('cart.member_id = :member_id AND cart.category_name = :category_name', { member_id: memberId, category_name: subcategory })
+                    .innerJoin('question', 'q', 'cart.question_id = q.id')
+                    .innerJoin('category', 'c', 'c.id = (SELECT category_upper_id FROM category WHERE category_name = cart.category_name)')
+                    .where('cart.member_id = :member_id AND cart.category_name = :category_name', { member_id: memberId, category_name: subcategory })
                     .orderBy('q.createdAt', 'DESC').offset(skipNumber).limit(this.PAGE_SIZE).getRawMany();
 
                return this.makeResult(rowPacket, countQuery);
@@ -153,7 +173,7 @@ export class CartService {
       */
      makeResult(rowPacket: RowDataPacket[], countQuery: RowDataPacket): ResponseCartQuestionsDTO {
           const cartQuestionsDTOs: ResponseCartQuestionsOfMemberData[] = rowPacket.map(packet => ({
-               questionId: packet.question_id,
+               questionId: Number(packet.question_id),
                category: packet.category_name,
                subcategory: packet.subcategory_name,
                questionContent: packet.question_content,

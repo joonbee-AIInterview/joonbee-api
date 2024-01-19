@@ -6,9 +6,6 @@ import { Response } from 'express';
 import { TokenAuthGuard } from "src/common/config/auth";
 import { RequestMemberQuestionInsertCartDTO } from "./dto/request.dto";
 import { ApiBody } from "@nestjs/swagger";
-import { InjectRepository } from "@nestjs/typeorm";
-import { Category } from "src/entity/category.entity";
-import { Repository } from "typeorm";
 
 @Controller('api/cart')
 export class CartController {
@@ -20,9 +17,6 @@ export class CartController {
 
      constructor(
           private readonly cartService: CartService,
-          // 유효성 검사용
-          @InjectRepository(Category)
-          private readonly categoryRepository: Repository<Category>,
      ){}
 
      /**
@@ -38,38 +32,17 @@ export class CartController {
      ) {
         if (page === "") throw new CustomError('페이지가 비었습니다. ', 400);
         if (page === "0") page = "1";
-        const memberId = response.locals.memberId;
+        const memberId = '김재우';
         let data;
 
         try {
           if (category === "" && subcategory === "") {
                data = await this.cartService.getMemberCarts(Number(page), memberId);
           } else if (category !== "" && subcategory === "") {
-               // 유효성 검사
-               const check = await this.categoryRepository.findOne({
-                    where: {
-                         categoryName: category,
-                    },
-               });
-               if (!check || check.categoryLevel !== 0) throw new CustomError('데이터베이스에 존재하지 않는 상위카테고리입니다. ', 404);
                data = await this.cartService.getMemberCartsByCategory(Number(page), memberId, category);
           } else {
-               // 유효성 검사
-               const checkCategory = await this.categoryRepository.findOne({
-                    where: {
-                         categoryName: category,
-                    },
-               });
-               if (!checkCategory || checkCategory.categoryLevel !== 0) throw new CustomError('데이터베이스에 존재하지 않는 상위카테고리입니다. ', 404);
-               const checkSubcategory = await this.categoryRepository.findOne({
-                    where: {
-                         categoryName: subcategory,
-                    },
-               });
-               if (!checkSubcategory || checkSubcategory.categoryLevel !== 1) throw new CustomError('데이터베이스에 존재하지 않는 하위카테고리입니다. ', 404);
                data = await this.cartService.getMemberCartsBySubcategory(Number(page), memberId, category, subcategory);
           }
-
           const apiResponse: ApiResponse<ResponseCartQuestionsDTO> = {
                status: 200,
                data
@@ -77,7 +50,7 @@ export class CartController {
           response.json(apiResponse);
         } catch (error) {
                console.log('getMemberCarts 컨트롤러 에러발생: ' + error);
-             throw new CustomError('알 수 없는 에러 : ' + error,500);
+               throw new CustomError('getMemberCarts 에러 : ' + error, 500);
         }
      }
 
@@ -106,7 +79,7 @@ export class CartController {
                response.json(apiResponse);
           } catch (error) {
                console.log('insertMemberQuestionIntoCart 컨트롤러 에러발생: ' + error);
-               throw new CustomError('알 수 없는 에러 : ' + error,500);
+               throw new CustomError('insertMemberQuestionIntoCart 에러 : ' + error, 500);
           }
      }
 }

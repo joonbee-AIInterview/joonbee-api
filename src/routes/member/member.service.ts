@@ -213,10 +213,11 @@ export class MemberService {
     
             const rowPacket: RowDataPacket[] = await this.interviewRepository
                 .createQueryBuilder('interview')
-                .select(['COUNT(*) AS questionCount', 'interview.categoryName AS categoryName', 'interview.id AS interviewId'])
+                .select(['COUNT(*) AS questionCount', 'interview.categoryName AS categoryName', 'interview.id AS interviewId','interview.createdAt'])
                 .innerJoin('interview.interviewAndQuestions','iaq')
                 .where('interview.member_id = :memberId',{ memberId })
                 .groupBy('interview.id')
+                .orderBy('interview.createdAt',"DESC")
                 .offset(skipNumber)
                 .limit(this.PAGE_SIZE)
                 .getRawMany();
@@ -409,11 +410,10 @@ export class MemberService {
                 .innerJoin('i.interviewAndQuestions','iaq')
                 .innerJoin('iaq.question','q')
                 .where('i.id = :interviewId', {interviewId})
+                .andWhere('i.memberId = :memberId', {memberId})
                 .getRawMany();
             
             if(!data.length) throw new CustomError('존재하지 않는 면접정보입니다.',400);
-            if(data[0].memberId !== memberId) throw new CustomError('해당 면접정보의 주인이 아닙니다.',400);
-            
             data.forEach((result) => {
                 questionInfos.push({
                     questionId : +result.id,

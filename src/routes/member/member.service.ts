@@ -514,12 +514,10 @@ export class MemberService {
                         .innerJoin('iaq.interview','interview')
                         .where('iaq.interviewId = :interviewId',{interviewId})
                         .andWhere('iaq.questionId = :questionId',{questionId})
+                        .andWhere('interview.member_id = :memberId',{memberId})
                         .getRawOne();
 
-            console.log(entitiyData);
-
-            if(memberId !== entitiyData.member_id) throw new CustomError('해당 면접의 주인이 아닙니다.',400);
-            if(!entitiyData) throw new CustomError('존재하는 데이터입니다.',400);
+            if(!entitiyData) throw new CustomError('존재하지 않는 데이터입니다.',400);
 
             const response: ResponseInterAndQuestionInfo = {
                 interviewId: entitiyData.interview_id,

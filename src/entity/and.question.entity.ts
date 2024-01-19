@@ -14,6 +14,12 @@ export class InterviewAndQuestion{
 
     @Column({ name: 'answer_content', type: 'text'})
     answerContent: string;
+
+    @Column({ name: 'commentary' })
+    commentary:string;
+
+    @Column({ name: 'evaluation'})
+    evaluation: string;
     
     @ManyToOne(() => Interview, interview => interview.id, { onDelete: 'CASCADE' })
     @JoinColumn({ name : 'interview_id' })

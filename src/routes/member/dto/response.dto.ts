@@ -70,3 +70,11 @@ export interface ResponseQuestionInfo{
     questionId: number;
     questionContent: string;
 }
+
+export interface ResponseInterAndQuestionInfo{
+    interviewId: number;
+    questionId: number;
+    answerContent: string;
+    commentary:string;
+    evaluation: string;
+}

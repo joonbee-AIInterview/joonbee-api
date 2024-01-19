@@ -13,7 +13,13 @@ export class RequestQuestion {
     @IsNotEmpty()
     @ApiProperty({ description: '답변 내용' })
     answerContent: string;
-  }
+
+    @ApiProperty({ description: '해설'})
+    commentary: string;
+
+    @ApiProperty({ description: '평가'})
+    evaluation: string;
+}
 
 export class RequestLikeDTO{
     @IsNotEmpty()

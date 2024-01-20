@@ -77,4 +77,5 @@ export interface ResponseInterAndQuestionInfo{
     answerContent: string;
     commentary:string;
     evaluation: string;
+    questionContent: string;
 }

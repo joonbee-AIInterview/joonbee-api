@@ -510,12 +510,15 @@ export class MemberService {
 
         try{
             const entitiyData: RowDataPacket = await this.andQuestionRepository.createQueryBuilder('iaq')
-                        .select(['iaq.*','interview.member_id'])
-                        .innerJoin('iaq.interview','interview')
+                        .select(['iaq.*','question.questionContent as questionContent'])
+                        .innerJoin('iaq.interview', 'interview')
+                        .innerJoin('iaq.question','question')
                         .where('iaq.interviewId = :interviewId',{interviewId})
                         .andWhere('iaq.questionId = :questionId',{questionId})
                         .andWhere('interview.member_id = :memberId',{memberId})
                         .getRawOne();
+
+            console.log(entitiyData);
 
             if(!entitiyData) throw new CustomError('존재하지 않는 데이터입니다.',400);
 
@@ -524,7 +527,8 @@ export class MemberService {
                 questionId: entitiyData.question_id,
                 answerContent: entitiyData.answer_content,
                 commentary: entitiyData.commentary,
-                evaluation: entitiyData.evaluation
+                evaluation: entitiyData.evaluation,
+                questionContent: entitiyData.questionContent
             }
 
             return response;

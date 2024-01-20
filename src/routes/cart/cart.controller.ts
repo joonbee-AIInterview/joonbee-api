@@ -32,7 +32,7 @@ export class CartController {
      ) {
         if (page === "") throw new CustomError('페이지가 비었습니다. ', 400);
         if (page === "0") page = "1";
-        const memberId = '김재우';
+        const memberId = response.locals.memberId;
         let data;
 
         try {

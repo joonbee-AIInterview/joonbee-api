@@ -46,7 +46,17 @@ export class CartService {
                     .where('cart.member_id = :member_id', { member_id: memberId })
                     .orderBy('q.createdAt', 'DESC').offset(skipNumber).limit(this.PAGE_SIZE).getRawMany();
 
-               return this.makeResult(rowPacket, countQuery);
+               const cartQuestionsDTOs: ResponseCartQuestionsOfMemberData[] = rowPacket.map(packet => ({
+                    questionId: Number(packet.question_id),
+                    category: packet.category_name,
+                    subcategory: packet.subcategory_name,
+                    questionContent: packet.question_content,
+               }));
+               const result: ResponseCartQuestionsDTO = {
+                    total: Number(countQuery.count),
+                    result: cartQuestionsDTOs
+               }
+               return result;
           } catch (error) {
                console.log('getMemberCarts ERROR cart.service 53\n' + error);
                throw new CustomError('getMemberCarts 서비스 로직 에러: ', 500);
@@ -60,18 +70,17 @@ export class CartService {
           if (!['fe', 'be', 'language', 'cs', 'mobile', 'etc'].includes(category)) throw new CustomError('존재하지 않는 상위 카테고리입니다. ', 404);
           const skipNumber = (page - 1) * this.PAGE_SIZE;
           try {
-               const countQuery = await this.cartRepository.query(`
-                    SELECT COUNT(*) AS count
-                         FROM cart
-                    INNER JOIN question AS q ON cart.question_id = q.id
-                    INNER JOIN category AS cat ON q.category_id = cat.id
-                         LEFT JOIN category AS upper_category ON upper_category.id = (SELECT category_upper_id FROM category c WHERE c.category_name = cart.category_name)
-                    WHERE cat.category_upper_id = (
-                              SELECT id
-                    FROM category
-                         WHERE category_name = '${category}'
-                    ) AND cart.member_id = '${memberId}'
-               `);
+               const categoryUpperId = await this.categoryRepository.createQueryBuilder('c')
+                    .select('c.id')
+                    .where('c.category_name = :category', { category })
+                    .getOne();
+
+               const countQuery: RowDataPacket = await this.cartRepository.createQueryBuilder('cart')
+                    .select('count(*)', 'count')
+                    .innerJoin('category', 'c', 'cart.category_name = c.category_name')
+                    .where('cart.member_id = :memberId', { memberId: memberId })
+                    .andWhere('c.category_upper_id = :categoryUpperId', { categoryUpperId: categoryUpperId.id })
+                    .getRawOne();
                
                const rowPacket: RowDataPacket[] = await this.cartRepository.createQueryBuilder('cart')
                     .select([
@@ -85,7 +94,17 @@ export class CartService {
                     .where('cart.member_id = :member_id', { member_id: memberId }).andWhere('upper_category.category_name = :category_name', { category_name: category })
                     .orderBy('q.createdAt', 'DESC').offset(skipNumber).limit(this.PAGE_SIZE).getRawMany();
 
-               return this.makeResult(rowPacket, countQuery[0]);
+               const cartQuestionsDTOs: ResponseCartQuestionsOfMemberData[] = rowPacket.map(packet => ({
+                    questionId: Number(packet.question_id),
+                    category: packet.category_name,
+                    subcategory: packet.subcategory_name,
+                    questionContent: packet.question_content,
+               }));
+               const result: ResponseCartQuestionsDTO = {
+                    total: Number(countQuery.count),
+                    result: cartQuestionsDTOs
+               }
+               return result;
           } catch (error) {
                console.log('getMemberCartsByCategory ERROR cart.service 100\n' + error);
                throw new CustomError('getMemberCartsByCategory 서비스 로직 에러: ', 500);
@@ -129,7 +148,17 @@ export class CartService {
                     .where('cart.member_id = :member_id AND cart.category_name = :category_name', { member_id: memberId, category_name: subcategory })
                     .orderBy('q.createdAt', 'DESC').offset(skipNumber).limit(this.PAGE_SIZE).getRawMany();
 
-               return this.makeResult(rowPacket, countQuery);
+               const cartQuestionsDTOs: ResponseCartQuestionsOfMemberData[] = rowPacket.map(packet => ({
+                    questionId: Number(packet.question_id),
+                    category: packet.category_name,
+                    subcategory: packet.subcategory_name,
+                    questionContent: packet.question_content,
+               }));
+               const result: ResponseCartQuestionsDTO = {
+                    total: Number(countQuery.count),
+                    result: cartQuestionsDTOs
+               }
+               return result;
           } catch (error) {
                console.log('getMemberCartsBySubcategory ERROR cart.service 137\n' + error);
                throw new CustomError('면접 전, 사용자의 장바구니 하위카테고리 필터 질문 데이터 전체 조회 실패', 500);
@@ -166,22 +195,5 @@ export class CartService {
                console.log('insertMemberQuestionIntoCart ERROR cart.service 146');
                throw new CustomError('사용자가 생성한 질문 장바구니 담기 실패', 500);
           }
-     }
-
-     /**
-      * cartQuestionsDTOs => result 공통메소드
-      */
-     makeResult(rowPacket: RowDataPacket[], countQuery: RowDataPacket): ResponseCartQuestionsDTO {
-          const cartQuestionsDTOs: ResponseCartQuestionsOfMemberData[] = rowPacket.map(packet => ({
-               questionId: Number(packet.question_id),
-               category: packet.category_name,
-               subcategory: packet.subcategory_name,
-               questionContent: packet.question_content,
-          }));
-          const result: ResponseCartQuestionsDTO = {
-               total: Number(countQuery.count),
-               result: cartQuestionsDTOs
-          }
-          return result;
      }
 }

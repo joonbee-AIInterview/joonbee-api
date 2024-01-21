@@ -67,7 +67,7 @@ export class QuestionController {
                }
                response.json(apiResponse);
           } catch(error) {
-               console.log('getQuestions 컨트롤러 에러발생: ' + error); 
+               console.error('getQuestions 컨트롤러 에러발생: ' + error); 
                throw new CustomError('알 수 없는 에러 : ' + error,500);
           }
      }
@@ -95,7 +95,7 @@ export class QuestionController {
                 }
                response.json(apiResponse);
           } catch (error) {
-               console.log('getQuestionsByGPT 컨트롤러 에러발생: ' + error); 
+               console.error('getQuestionsByGPT 컨트롤러 에러발생: ' + error); 
                throw new CustomError('알 수 없는 에러 : ' + error,500);
           }
      }
@@ -119,7 +119,7 @@ export class QuestionController {
                 }
                response.json(apiResponse);
           } catch (error) {
-               console.log('findMemberCheckQuestions 컨트롤러 에러발생: ' + error);
+               console.error('findMemberCheckQuestions 컨트롤러 에러발생: ' + error);
                throw new CustomError('알 수 없는 에러 : ' + error,500);
           }
      }

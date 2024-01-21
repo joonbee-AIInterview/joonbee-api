@@ -58,7 +58,7 @@ export class InterviewController {
                }
                response.json(apiResponse);
           } catch(error) {
-               console.log('getInterviews 컨트롤러 에러발생: ' + error);
+               console.error('getInterviews 컨트롤러 에러발생: ' + error);
                throw new CustomError('getInterviews 컨트롤러 에러발생 : ' + error,500);
           }
      }

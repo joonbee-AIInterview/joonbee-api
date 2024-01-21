@@ -49,7 +49,7 @@ export class QuestionService {
                }
                return result;
           } catch(error) {
-               console.log('getQuestions ERROR question.service 43\n' + error);
+               console.error('getQuestions ERROR question.service 43\n' + error);
                throw new CustomError('메인 페이지 하단 디폴트 랜덤 질문 정보 불러오기 실패', 500);
           }
      }
@@ -96,7 +96,7 @@ export class QuestionService {
                }
                return result;
           } catch(error) {
-               console.log('getQuestionsWithCategory ERROR question.service 86\n' + error);
+               console.error('getQuestionsWithCategory ERROR question.service 86\n' + error);
                throw new CustomError('메인 페이지 하단 상위카테고리 랜덤 질문 정보 불러오기 실패', 500);
           }
      }
@@ -141,7 +141,7 @@ export class QuestionService {
                }
                return result;
           } catch(error) {
-               console.log('getQuestionsWithSubcategory ERROR question.service 123\n' + error);
+               console.error('getQuestionsWithSubcategory ERROR question.service 123\n' + error);
                throw new CustomError('메인 페이지 하단 서브카테고리 랜덤 질문 정보 불러오기 실패', 500);
           }
      }
@@ -158,7 +158,7 @@ export class QuestionService {
                     .orderBy('RAND()').limit(parseInt(questionCount)).getRawMany(); // RAND(): 추후 최적화 필요!
                return this.makeGPTResult(memberId, categoryName, rowPacket);
           } catch (error) {
-               console.log('getQuestionsByGPT ERROR question.service 123\n' + error);
+               console.error('getQuestionsByGPT ERROR question.service 123\n' + error);
                throw new CustomError('GPT질문들 가져오기 실패', 500);
           }
      }
@@ -193,7 +193,7 @@ export class QuestionService {
                }
                return result;
           } catch (error) {
-               console.log('findMemberCheckQuestions ERROR cart.service 100\n' + error);
+               console.error('findMemberCheckQuestions ERROR cart.service 100\n' + error);
                throw new CustomError('선택한 사용자 질문 인터뷰에 저장하기 실패', 500);
           }
      }

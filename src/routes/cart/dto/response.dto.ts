@@ -3,6 +3,7 @@
  */
 export class ResponseCartQuestionsOfMemberData {
      questionId: number;
+     category: string;
      subcategory: string;
      questionContent: string;
 }

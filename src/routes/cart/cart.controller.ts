@@ -9,11 +9,6 @@ import { ApiBody } from "@nestjs/swagger";
 
 @Controller('api/cart')
 export class CartController {
-     /**
-     * Nest.js에서 @Res() 데커레이터를 사용하면 Express.js의 원시 Response객체에
-     * 접근하기 때문에 return (Next.js 내장 응답처리 메커니즘)을 무시하고,
-     * 원시 Express형식으로 응답을 보내야한다.
-     */
 
      constructor(
           private readonly cartService: CartService,
@@ -36,20 +31,17 @@ export class CartController {
         let data;
 
         try {
-          if (category === "" && subcategory === "") {
-               data = await this.cartService.getMemberCarts(Number(page), memberId);
-          } else if (category !== "" && subcategory === "") {
-               data = await this.cartService.getMemberCartsByCategory(Number(page), memberId, category);
-          } else {
-               data = await this.cartService.getMemberCartsBySubcategory(Number(page), memberId, category, subcategory);
-          }
+          if (category === "" && subcategory === "") data = await this.cartService.getMemberCarts(Number(page), memberId);
+          else if (category !== "" && subcategory === "") data = await this.cartService.getMemberCartsByCategory(Number(page), memberId, category);
+          else data = await this.cartService.getMemberCartsBySubcategory(Number(page), memberId, category, subcategory);
+
           const apiResponse: ApiResponse<ResponseCartQuestionsDTO> = {
                status: 200,
                data
           }
           response.json(apiResponse);
         } catch (error) {
-               console.log('getMemberCarts 컨트롤러 에러발생: ' + error);
+               console.error('getMemberCarts 컨트롤러 에러발생: ' + error);
                throw new CustomError('getMemberCarts 에러 : ' + error, 500);
         }
      }
@@ -78,7 +70,7 @@ export class CartController {
                 }
                response.json(apiResponse);
           } catch (error) {
-               console.log('insertMemberQuestionIntoCart 컨트롤러 에러발생: ' + error);
+               console.error('insertMemberQuestionIntoCart 컨트롤러 에러발생: ' + error);
                throw new CustomError('insertMemberQuestionIntoCart 에러 : ' + error, 500);
           }
      }

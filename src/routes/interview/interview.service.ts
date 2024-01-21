@@ -2,12 +2,13 @@ import { Injectable } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
 import { CustomError } from "src/common/config/common";
 import { Interview } from "src/entity/interview.entity";
-import { Repository } from "typeorm";
-import { ResponseInterviewsDTO } from "./dto/response.dto";
+import { DataSource, QueryRunner, Repository } from "typeorm";
+import { ResponseInterviewInfoDTO, ResponseInterviewsDTO, ResponseQuestionInfo } from "./dto/response.dto";
 import { Member } from 'src/entity/member.entity';
 import { Like } from 'src/entity/like.entity';
 import { InterviewAndQuestion } from 'src/entity/and.question.entity';
 import { Question } from 'src/entity/question.entity';
+import { ResponseInterviewDetail } from "../member/dto/response.dto";
 
 @Injectable()
 export class InterviewService {
@@ -19,6 +20,7 @@ export class InterviewService {
           private readonly interviewRepository: Repository<Interview>,
           @InjectRepository(InterviewAndQuestion)
           private readonly interviewAndQuestionRepository: Repository<InterviewAndQuestion>,
+          private readonly dataSourse: DataSource
      ) {
           this.PAGE_SIZE = 9;
      }
@@ -254,5 +256,63 @@ export class InterviewService {
                console.error('getInterviewsWithLikeMemberQuestion ERROR interview.service 113\n' + error);
                throw new CustomError('메인 페이지 상단 상위 카테고리 랜덤 인터뷰 정보 불러오기 실패', 500);
           }
+     }
+
+
+     /**
+      * @note 인터뷰 데이터 조호핮지만 인증없이 조회이기 때문에 gpt 에 대한 정보는 조회하지 않음
+      */
+     async interviewInfoData(interviewId: number): Promise<ResponseInterviewInfoDTO> {
+
+         const questionInfos: ResponseQuestionInfo[] = [];
+         const queryRunner: QueryRunner = this.dataSourse.createQueryRunner();
+
+          await queryRunner.connect();
+          await queryRunner.startTransaction();
+
+          try{
+               const data = await queryRunner.manager.createQueryBuilder()
+                    .select(['m.thumbnail as profile, m.nickName as nickName, i.categoryName as categoryName, q.questionContent as questionContent, q.id as questionId'])
+                    .from(Interview, 'i')
+                    .innerJoin('i.member', 'm')
+                    .innerJoin('i.interviewAndQuestions','iaq')
+                    .innerJoin('iaq.question', 'q')
+                    .where('i.id = :interviewId',{interviewId})
+                    .getRawMany();
+               
+               await queryRunner.commitTransaction();
+
+               if(!data.length) throw new CustomError('존재하지 않는 면접정보입니다.',400);
+
+               data.forEach((result) => {
+                    questionInfos.push({
+                         questionId: +result.questionId,
+                         questionContent: result.questionContent
+                    })
+               });
+
+               const resultDTO: ResponseInterviewInfoDTO = {
+                    memberThumnbail: data[0].profile,
+                    memberNickName: data[0].nickName,
+                    questionContents: questionInfos
+               }
+
+               return resultDTO;
+
+          }catch(err){
+               console.error(err)
+               await queryRunner.rollbackTransaction();
+
+               if(err instanceof CustomError){
+                    throw new CustomError(err.message, err.statusCode);
+               }
+
+               throw new CustomError('면접 데이터 조회 중 알 수없는 에러 발생',500);
+          }finally{
+               await queryRunner.release();
+          }
+          
+          
+          return null;
      }
 }

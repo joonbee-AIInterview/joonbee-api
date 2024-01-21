@@ -20,3 +20,15 @@ export class ResponseInterviewsDTO {
      total: number;
      result: ResponseInterviewsWithLikeMemberQuestionData[];
 }
+
+export class ResponseInterviewInfoDTO {
+     memberThumnbail: string;
+     memberNickName: string;
+     questionContents: ResponseQuestionInfo[];
+}
+
+export interface ResponseQuestionInfo{
+     questionId: number;
+     questionContent: string;
+ }
+ 

@@ -1,8 +1,8 @@
-import { Controller, Get, Query, Res, UseGuards } from '@nestjs/common';
+import { Controller, Get, ParseIntPipe, Query, Res, UseGuards } from '@nestjs/common';
 import { InterviewService } from './interview.service';
 import { Response } from 'express';
 import { ApiResponse, CustomError } from 'src/common/config/common';
-import { ResponseInterviewsDTO } from './dto/response.dto';
+import { ResponseInterviewInfoDTO, ResponseInterviewsDTO } from './dto/response.dto';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Category } from 'src/entity/category.entity';
 import { Repository } from 'typeorm';
@@ -40,26 +40,40 @@ export class InterviewController {
           let data;
           const memberId = response.locals.memberId;
 
-          try {
-               if (category === "") { 
-                    data = await this.interviewService.getInterviews(Number(page), memberId, sort);
-               } else {
-                    const check = await this.categoryRepository.findOne({
-                         where: {
-                              categoryName: category,
-                         },
-                    });
-                    if (!check || check.categoryLevel !== 0) throw new CustomError('데이터베이스에 존재하지 않는 상위카테고리입니다. ', 404);
-                    data = await this.interviewService.getInterviewsWithLikeMemberQuestion(Number(page), memberId, category, sort);
-               }
-               const apiResponse: ApiResponse<ResponseInterviewsDTO> = {
-                    status: 200,
-                    data
-               }
-               response.json(apiResponse);
-          } catch(error) {
-               console.log('getInterviews 컨트롤러 에러발생: ' + error);
-               throw new CustomError('getInterviews 컨트롤러 에러발생 : ' + error,500);
+          if (category === "") { 
+               data = await this.interviewService.getInterviews(Number(page), memberId, sort);
+          } else {
+               const check = await this.categoryRepository.findOne({
+                    where: {
+                         categoryName: category,
+                    },
+               });
+               if (!check || check.categoryLevel !== 0) throw new CustomError('데이터베이스에 존재하지 않는 상위카테고리입니다. ', 404);
+               data = await this.interviewService.getInterviewsWithLikeMemberQuestion(Number(page), memberId, category, sort);
           }
+          const apiResponse: ApiResponse<ResponseInterviewsDTO> = {
+               status: 200,
+               data
+          }
+          response.json(apiResponse);
+         
      }
+
+     /**
+      * @api 면접정보를 볼 수 있는 api 인증을 하지않은 gpt의 의견은 보지못함
+      */
+     @Get('detail')
+     async interviewDatial(
+          @Query('interId', ParseIntPipe) interviewId: number
+     ){
+          const data: ResponseInterviewInfoDTO = await this.interviewService.interviewInfoData(interviewId);
+
+          const apiResponse: ApiResponse<ResponseInterviewInfoDTO> = {
+               status: 200,
+               data
+          }
+
+          return apiResponse;
+     }
+
 }

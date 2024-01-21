@@ -26,5 +26,5 @@ export class TypeOrmConfigService implements TypeOrmOptionsFactory {
         "synchronize": false,
         "logging": true
         };
-      }
+    }
 }

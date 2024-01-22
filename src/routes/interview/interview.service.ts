@@ -260,7 +260,7 @@ export class InterviewService {
 
 
      /**
-      * @note 인터뷰 데이터 조호핮지만 인증없이 조회이기 때문에 gpt 에 대한 정보는 조회하지 않음
+      * @note 인터뷰 데이터 조호하지만 인증없이 조회이기 때문에 gpt 의견에 대한 정보는 조회하지 않음
       */
      async interviewInfoData(interviewId: number): Promise<ResponseInterviewInfoDTO> {
 
@@ -279,7 +279,11 @@ export class InterviewService {
                     .innerJoin('iaq.question', 'q')
                     .where('i.id = :interviewId',{interviewId})
                     .getRawMany();
-               
+
+               const likeCount = await queryRunner.manager.createQueryBuilder(Like, 'l')
+                         .where('l.interviewId = :interviewId',{interviewId})
+                         .getCount();
+
                await queryRunner.commitTransaction();
 
                if(!data.length) throw new CustomError('존재하지 않는 면접정보입니다.',400);
@@ -294,7 +298,9 @@ export class InterviewService {
                const resultDTO: ResponseInterviewInfoDTO = {
                     memberThumnbail: data[0].profile,
                     memberNickName: data[0].nickName,
-                    questionContents: questionInfos
+                    questionContents: questionInfos,
+                    categoryName: data[0].categoryName,
+                    likeCount: +likeCount
                }
 
                return resultDTO;

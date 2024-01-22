@@ -25,6 +25,8 @@ export class ResponseInterviewInfoDTO {
      memberThumnbail: string;
      memberNickName: string;
      questionContents: ResponseQuestionInfo[];
+     categoryName: string;
+     likeCount: number;
 }
 
 export interface ResponseQuestionInfo{

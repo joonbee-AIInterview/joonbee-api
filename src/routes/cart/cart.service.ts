@@ -155,13 +155,16 @@ export class CartService {
       * @note 사용자가 입력한 질문을 생성하고 저장 후, 장바구니에 생성과 저장한다.
       */
      async insertMemberQuestionIntoCart(memberId: string, categoryName: string, subcategoryName: string, questionContent: string): Promise<void> {
-          try {
-               const category = await this.categoryRepository.findOne({
-                    where: {
-                         categoryName: subcategoryName,
-                    },
-               });
+          if (!['fe', 'be', 'language', 'cs', 'mobile', 'etc'].includes(categoryName)) throw new CustomError('상위카테고리에 해당되는 값만 선택해주세요. ', 400);
+          const checkSubcategory = await this.categoryRepository.findOne({where: {categoryName: subcategoryName,},});
+          const checkCategory = await this.categoryRepository.findOne({where: {categoryName,}});
+          if (!checkSubcategory || checkSubcategory.categoryLevel !== 1) throw new CustomError('존재하지 않는 하위 카테고리입니다. ', 400);
+          if (checkCategory.id !== checkSubcategory.categoryUpperId) throw new CustomError('상위카테고리에 속하지 않는 하위카테고리 입니다. ', 400);
+          const duplicateCheck = await this.questionRepository.exist({where: {questionContent,},});
+          if (duplicateCheck) throw new CustomError('동일한 내용의 질문입니다. ', 400);
 
+          try {
+               const category = await this.categoryRepository.findOne({where: {categoryName: subcategoryName,},});
                const questionObj = this.questionRepository.create({
                     category: category,
                     gptFlag: 0,
@@ -170,7 +173,6 @@ export class CartService {
                     questionContent: questionContent,
                });
                const question = await this.questionRepository.save(questionObj);
-
                const cartObj = this.cartRepository.create({
                     memberId,
                     questionId: question.id,
@@ -179,7 +181,34 @@ export class CartService {
                await this.cartRepository.save(cartObj);
           } catch (error) {
                console.error('insertMemberQuestionIntoCart ERROR cart.service 146');
-               throw new CustomError('사용자가 생성한 질문 장바구니 담기 실패', 500);
+               throw new CustomError('insertMemberQuestionIntoCart 서비스 코드 에러: 사용자가 생성한 질문 장바구니 담기 실패', 500);
+          }
+     }
+
+     /**
+      * @note 메인페이지에 있던 질문을 클릭하면 사용자 장바구니에 저장이 된다.
+      */
+     async insertMemberQuestionWithQuestionIdIntoCart(memberId: string, questionId: number, subcategoryName: string): Promise<void> {
+          const existQuestionInCart = await this.cartRepository.createQueryBuilder('c')
+               .where('c.member_id = :memberId', { memberId }).andWhere('c.question_id = :questionId', { questionId })
+               .getRawOne();
+          if (existQuestionInCart) throw new CustomError('장바구니에 이미 존재하는 질문입니다. ', 400);
+          const checkCategoryOfQuestion = await this.questionRepository.createQueryBuilder('q')
+               .select('c.category_name as questionSubcategory')
+               .innerJoin('category', 'c', 'q.category_id=c.id')
+               .where('q.id = :questionId', { questionId }).getRawOne();
+          if (checkCategoryOfQuestion.questionSubcategory !== subcategoryName) throw new CustomError('질문아이디와 카테고리가 일치하지 않습니다. ', 400);
+
+          try {
+               const cartObj = this.cartRepository.create({
+                    memberId,
+                    questionId,
+                    categoryName: subcategoryName,
+               });
+               await this.cartRepository.save(cartObj);
+          } catch (error) {
+               console.error('insertMemberQuestionWithQuestionIdIntoCart ERROR cart.service 146');
+               throw new CustomError('insertMemberQuestionWithQuestionIdIntoCart 서비스 코드 에러: 기존에 있는 질문 장바구니 담기 실패', 500);
           }
      }
 }

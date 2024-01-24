@@ -56,22 +56,18 @@ export class CartController {
           @Body(new ValidationPipe()) dto: RequestMemberQuestionInsertCartDTO,
           @Res() response: Response  
      ) {
-          const { categoryName, subcategoryName, questionContent } = dto;
-          if (categoryName === "") throw new CustomError('카테고리가 비었습니다. ', 400);
+          const { questionId, categoryName, subcategoryName, questionContent } = dto;
           if (subcategoryName === "") throw new CustomError('서브카테고리가 비었습니다. ', 400);
           if (questionContent === "") throw new CustomError('질문 내용이 비어있습니다.', 400);
-          const memberId: string = response.locals.memberId;
+          const memberId = response.locals.memberId;
 
-          try {
-               await this.cartService.insertMemberQuestionIntoCart(memberId, categoryName, subcategoryName, questionContent);
-               const apiResponse: ApiResponse<string> = {
-                    status: 200,
-                    data: '성공'
-                }
-               response.json(apiResponse);
-          } catch (error) {
-               console.error('insertMemberQuestionIntoCart 컨트롤러 에러발생: ' + error);
-               throw new CustomError('insertMemberQuestionIntoCart 에러 : ' + error, 500);
-          }
+          if (questionId !== undefined) await this.cartService.insertMemberQuestionWithQuestionIdIntoCart(memberId, questionId, subcategoryName);
+          else await this.cartService.insertMemberQuestionIntoCart(memberId, categoryName, subcategoryName, questionContent);
+          
+          const apiResponse: ApiResponse<string> = {
+               status: 200,
+               data: '성공'
+           }
+          response.json(apiResponse);
      }
 }

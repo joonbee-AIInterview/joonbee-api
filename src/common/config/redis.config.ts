@@ -19,7 +19,7 @@ export class RedisService{
         this.client.on('error', (err) => {throw new CustomError('RedisConnectionError', 500)});
     }
 
-    async publish(memberId: string): Promise<void> {
-        await this.client.publish(this.channelName, memberId);
+    async publish(dto: LikeDataForPublish): Promise<void> {
+        await this.client.publish(this.channelName, JSON.stringify(dto));
     }
 }

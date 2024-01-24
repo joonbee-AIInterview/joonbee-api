@@ -70,8 +70,12 @@ export class MemberService {
                                 .where('i.id = :id', { id : interviewId })
                                 .getRawOne() as RowDataPacket;
 
-            const publishWithMemberId = interviewEntityForMemberId.memberId;
-            await this.redisService.publish(publishWithMemberId);
+            const memberIdforPublish = interviewEntityForMemberId.memberId;
+            const dataForPublish: LikeDataForPublish = {
+                interviewId: interviewId,
+                memberId: memberIdforPublish
+            }
+            await this.redisService.publish(dataForPublish);
 
         }catch(error){
             console.log('insertLIKE ERROR member.service 27 \n'+ error);

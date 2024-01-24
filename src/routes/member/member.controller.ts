@@ -179,7 +179,7 @@ export class MemberController {
         @Res() response: Response
         ): Promise<void>{
 
-        const memberId = response.locals.memberId;
+        const memberId: string = String(response.locals.memberId);
         const interviewId = dto.interviewId;
                             
         this.memberService.insertLike(memberId, interviewId);

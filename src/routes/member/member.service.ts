@@ -67,13 +67,15 @@ export class MemberService {
             const interviewEntityForMemberId: RowDataPacket = await this.interviewRepository
                                 .createQueryBuilder('i')
                                 .select('i.memberId','memberId')
+                                .addSelect('i.categpryName','categoryName')
                                 .where('i.id = :id', { id : interviewId })
                                 .getRawOne() as RowDataPacket;
 
             const memberIdforPublish = interviewEntityForMemberId.memberId;
             const dataForPublish: LikeDataForPublish = {
                 interviewId: interviewId,
-                memberId: memberIdforPublish
+                memberId: memberIdforPublish,
+                categoryName: interviewEntityForMemberId.categoryName
             }
             await this.redisService.publish(dataForPublish);
 

@@ -317,8 +317,10 @@ export class InterviewService {
           }finally{
                await queryRunner.release();
           }
-          
-          
           return null;
      }
+
+     /**
+      * @note redis에서 sub받은 데이터들로 인터뷰 목록 정보 받아오기  
+      */
 }

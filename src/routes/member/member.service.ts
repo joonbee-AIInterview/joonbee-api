@@ -67,7 +67,7 @@ export class MemberService {
             const interviewEntityForMemberId: RowDataPacket = await this.interviewRepository
                                 .createQueryBuilder('i')
                                 .select('i.memberId','memberId')
-                                .addSelect('i.categpryName','categoryName')
+                                .addSelect('i.categoryName','categoryName')
                                 .where('i.id = :id', { id : interviewId })
                                 .getRawOne() as RowDataPacket;
 

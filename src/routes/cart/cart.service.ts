@@ -44,7 +44,7 @@ export class CartService {
                     ])
                     .innerJoin('question', 'q', 'cart.question_id = q.id').where('cart.member_id = :memberId', { memberId })
                     .orderBy('cart.createdAt', 'DESC').offset(skipNumber).limit(this.PAGE_SIZE).getRawMany();
-               console.log(rowPacket);
+
                const cartQuestionsDTOs: ResponseCartQuestionsOfMemberData[] = rowPacket.map(packet => ({
                     questionId: Number(packet.questionId),
                     category: packet.categoryName,
@@ -160,7 +160,11 @@ export class CartService {
           const checkCategory = await this.categoryRepository.findOne({where: {categoryName,}});
           if (!checkSubcategory || checkSubcategory.categoryLevel !== 1) throw new CustomError('존재하지 않는 하위 카테고리입니다. ', 400);
           if (checkCategory.id !== checkSubcategory.categoryUpperId) throw new CustomError('상위카테고리에 속하지 않는 하위카테고리 입니다. ', 400);
-          const duplicateCheck = await this.questionRepository.exist({where: {questionContent,},});
+          const duplicateCheck = await this.questionRepository.exist({
+               where: {
+                    questionContent,
+               },
+          });
           if (duplicateCheck) throw new CustomError('동일한 내용의 질문입니다. ', 400);
 
           try {

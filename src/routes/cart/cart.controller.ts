@@ -25,25 +25,25 @@ export class CartController {
           @Query('subcategory') subcategory: string,
           @Res() response: Response,
      ) {
-        if (page === "") throw new CustomError('페이지가 비었습니다. ', 400);
-        if (page === "0") page = "1";
-        const memberId = response.locals.memberId;
-        let data;
+          if (page === "") throw new CustomError('페이지가 비었습니다. ', 400);
+          if (Number(page) <= 0) throw new CustomError('page에는 1보다 큰 값을 입력해주세요. ', 400);
+          if (isNaN(Number(page))) throw new CustomError('page에는 문자가 들어갈 수 없습니다.', 400);
+          const memberId = '송재근';
+          let data;
 
-        try {
-          if (category === "" && subcategory === "") data = await this.cartService.getMemberCarts(Number(page), memberId);
-          else if (category !== "" && subcategory === "") data = await this.cartService.getMemberCartsByCategory(Number(page), memberId, category);
-          else data = await this.cartService.getMemberCartsBySubcategory(Number(page), memberId, category, subcategory);
+          if (category === "") {
+               if (subcategory !== "") throw new CustomError('상위카테고리를 선택하지 않고 하위카테고리만 선택했습니다. ', 400);
+               else data = await this.cartService.getMemberCarts(Number(page), memberId);
+          } else {
+               if (subcategory !== "")  data = await this.cartService.getMemberCartsBySubcategory(Number(page), memberId, category, subcategory);
+               else data = await this.cartService.getMemberCartsByCategory(Number(page), memberId, category);
+          }
 
           const apiResponse: ApiResponse<ResponseCartQuestionsDTO> = {
                status: 200,
                data
           }
           response.json(apiResponse);
-        } catch (error) {
-               console.error('getMemberCarts 컨트롤러 에러발생: ' + error);
-               throw new CustomError('getMemberCarts 에러 : ' + error, 500);
-        }
      }
 
      /**

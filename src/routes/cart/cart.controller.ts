@@ -26,9 +26,9 @@ export class CartController {
           @Res() response: Response,
      ) {
           if (page === "") throw new CustomError('페이지가 비었습니다. ', 400);
+          if (isNaN(Number(page))) throw new CustomError('page에는 문자가 들어갈 수 없습니다. 숫자를 입력해주세요. ', 400);
           if (Number(page) <= 0) throw new CustomError('page에는 1보다 큰 값을 입력해주세요. ', 400);
-          if (isNaN(Number(page))) throw new CustomError('page에는 문자가 들어갈 수 없습니다.', 400);
-          const memberId = '송재근';
+          const memberId = response.locals.memberId;
           let data;
 
           if (category === "") {
@@ -63,7 +63,6 @@ export class CartController {
 
           if (questionId !== undefined) await this.cartService.insertMemberQuestionWithQuestionIdIntoCart(memberId, questionId, subcategoryName);
           else await this.cartService.insertMemberQuestionIntoCart(memberId, categoryName, subcategoryName, questionContent);
-          
           const apiResponse: ApiResponse<string> = {
                status: 200,
                data: '성공'

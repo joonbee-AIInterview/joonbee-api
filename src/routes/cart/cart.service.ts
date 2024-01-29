@@ -33,8 +33,7 @@ export class CartService {
                const countQuery: RowDataPacket = await this.cartRepository.createQueryBuilder('cart')
                     .select('COUNT(cart.question_id)', 'count').where('cart.member_id = :member_id', { member_id: memberId })
                     .getRawOne();
-
-               // explain 쿼리 튜닝 필요
+                    
                const rowPacket: RowDataPacket[] = await this.cartRepository.createQueryBuilder('cart')
                     .select([
                          'cart.question_id AS questionId',
@@ -69,25 +68,34 @@ export class CartService {
           if (!['fe', 'be', 'language', 'cs', 'mobile', 'etc'].includes(categoryName)) throw new CustomError('존재하지 않는 상위 카테고리입니다. ', 400);
           const skipNumber = (page - 1) * this.PAGE_SIZE;
           try {
-               // 상위 카테고리 id
                const categoryId = await this.categoryRepository.createQueryBuilder('c')
                     .select('c.id').where('c.category_name = :categoryName', { categoryName })
                     .getOne();
 
+               const subcategoryNameList = await this.categoryRepository.createQueryBuilder('c')
+                    .select('c.category_name as subcategoryName')
+                    .where('c.category_upper_id IN (:categoryId)', { categoryId: categoryId.id })
+                    .getRawMany();
+
                const countQuery: RowDataPacket = await this.cartRepository.createQueryBuilder('cart')
-                    .select('count(*)', 'count').innerJoin('category', 'c', 'cart.category_name = c.category_name')
-                    .where('cart.member_id = :memberId', { memberId: memberId }).andWhere('c.category_upper_id = :categoryId', { categoryId: categoryId.id })
+                    .select('count(*)', 'count')
+                    .where('cart.member_id = :memberId', { memberId })
+                    .andWhere('cart.category_name IN (:...subcategoryNameList)', {
+                         subcategoryNameList: subcategoryNameList.map((row) => row.subcategoryName),
+                    })
                     .getRawOne();
 
-               // explain 쿼리 튜닝 필요
                const rowPacket: RowDataPacket[] = await this.cartRepository.createQueryBuilder('cart')
                     .select([
                          'cart.question_id AS questionId',
                          'cart.category_name AS subcategoryName',
                          'q.question_content AS questionContent',
                     ])
-                    .innerJoin('question', 'q', 'cart.question_id=q.id').innerJoin('category', 'c', 'cart.category_name=c.category_name')
-                    .where('cart.member_id = :memberId', { memberId }).andWhere('c.category_upper_id = :categoryId', { categoryId: categoryId.id })
+                    .innerJoin('question', 'q', 'cart.question_id=q.id')
+                    .where('cart.member_id = :memberId', { memberId })
+                    .andWhere('cart.category_name IN (:...subcategoryNameList)', {
+                         subcategoryNameList: subcategoryNameList.map((row) => row.subcategoryName),
+                    })
                     .orderBy('cart.createdAt', 'DESC').offset(skipNumber).limit(this.PAGE_SIZE).getRawMany();
 
                const cartQuestionsDTOs: ResponseCartQuestionsOfMemberData[] = rowPacket.map(packet => ({
@@ -112,10 +120,12 @@ export class CartService {
       */
      async getMemberCartsBySubcategory(page: number, memberId: string, categoryName: string, subcategoryName: string): Promise<ResponseCartQuestionsDTO> {
           if (!['fe', 'be', 'language', 'cs', 'mobile', 'etc'].includes(categoryName)) throw new CustomError('존재하지 않는 상위 카테고리입니다. ', 400);
+
           const checkSubcategory = await this.categoryRepository.findOne({where: {categoryName: subcategoryName,},});
-          const checkCategory = await this.categoryRepository.findOne({where: {categoryName,}});
           if (!checkSubcategory || checkSubcategory.categoryLevel !== 1) throw new CustomError('존재하지 않는 하위 카테고리입니다. ', 400);
-          if (checkCategory.id !== checkSubcategory.categoryUpperId) throw new CustomError('상위카테고리에 속하지 않는 하위카테고리 입니다. ', 400);
+
+          const checkCategory = await this.categoryRepository.findOne({where: {categoryName,}});
+          if (checkCategory.id !== checkSubcategory.categoryUpperId) throw new CustomError('하위카테고리가 상위카테고리에 속하지 않습니다. ', 400);
           
           const skipNumber = (page - 1) * this.PAGE_SIZE;
           try {
@@ -123,7 +133,6 @@ export class CartService {
                     .select('COUNT(*)', 'count').where('cart.member_id = :memberId', { memberId }).andWhere('cart.category_name = :subcategoryName', { subcategoryName })
                     .getRawOne();
 
-               // explain 쿼리 튜닝 필요
                const rowPacket: RowDataPacket[] = await this.cartRepository.createQueryBuilder('cart')
                     .select([
                         'cart.question_id AS questionId',

@@ -37,11 +37,14 @@ export class CartService {
                const rowPacket: RowDataPacket[] = await this.cartRepository.createQueryBuilder('cart')
                     .select([
                          'cart.question_id AS questionId',
-                         '(select c.category_name from category as c where c.id=(select c.category_upper_id from category as c where c.category_name=cart.category_name)) as categoryName',
+                         'c_upper.category_name as categoryName',
                          'cart.category_name AS subcategoryName',
                          'q.question_content AS questionContent'
                     ])
-                    .innerJoin('question', 'q', 'cart.question_id = q.id').where('cart.member_id = :memberId', { memberId })
+                    .innerJoin('question', 'q', 'cart.question_id = q.id')
+                    .innerJoin('category', 'c', 'q.category_id=c.id')
+                    .innerJoin('category', 'c_upper', 'c.category_upper_id = c_upper.id') // self Join
+                    .where('cart.member_id = :memberId', { memberId })
                     .orderBy('cart.createdAt', 'DESC').offset(skipNumber).limit(this.PAGE_SIZE).getRawMany();
 
                const cartQuestionsDTOs: ResponseCartQuestionsOfMemberData[] = rowPacket.map(packet => ({
@@ -164,18 +167,20 @@ export class CartService {
       * @note 사용자가 입력한 질문을 생성하고 저장 후, 장바구니에 생성과 저장한다.
       */
      async insertMemberQuestionIntoCart(memberId: string, categoryName: string, subcategoryName: string, questionContent: string): Promise<void> {
-          if (!['fe', 'be', 'language', 'cs', 'mobile', 'etc'].includes(categoryName)) throw new CustomError('상위카테고리에 해당되는 값만 선택해주세요. ', 400);
+          if (!['fe', 'be', 'language', 'cs', 'mobile', 'etc'].includes(categoryName)) throw new CustomError('상위카테고리가 아닙니다. ', 400);
+
           const checkSubcategory = await this.categoryRepository.findOne({where: {categoryName: subcategoryName,},});
-          const checkCategory = await this.categoryRepository.findOne({where: {categoryName,}});
           if (!checkSubcategory || checkSubcategory.categoryLevel !== 1) throw new CustomError('존재하지 않는 하위 카테고리입니다. ', 400);
-          if (checkCategory.id !== checkSubcategory.categoryUpperId) throw new CustomError('상위카테고리에 속하지 않는 하위카테고리 입니다. ', 400);
+
+          const checkCategory = await this.categoryRepository.findOne({where: {categoryName,}});
+          if (checkCategory.id !== checkSubcategory.categoryUpperId) throw new CustomError('하위카테고리가 상위카테고리에 속하지 않습니다. ', 400);
+
           const duplicateCheck = await this.questionRepository.exist({
                where: {
                     questionContent,
                },
           });
           if (duplicateCheck) throw new CustomError('동일한 내용의 질문입니다. ', 400);
-
           try {
                const category = await this.categoryRepository.findOne({where: {categoryName: subcategoryName,},});
                const questionObj = this.questionRepository.create({

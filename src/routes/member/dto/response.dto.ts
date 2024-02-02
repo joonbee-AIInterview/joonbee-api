@@ -14,6 +14,8 @@ export class ResponseMyInfoDTO{
 
     thumbnail: string;
 
+    email: string;
+
     nickName: string;
 
     interviewCount: number;

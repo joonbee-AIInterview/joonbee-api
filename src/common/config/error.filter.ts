@@ -11,19 +11,19 @@ export class CustomExceptionFilter implements ExceptionFilter {
 
         if(exception instanceof CustomError){
             return response.status(exception.statusCode).json({
-                statusCode: exception.statusCode,
+                status: exception.statusCode,
                 message: exception.message,
             });
         }else if(exception instanceof HttpException){
             console.error(exception);
             return response.status(exception.getStatus()).json({
-                statusCode: exception.getStatus(),
+                status: exception.getStatus(),
                 message: exception.getResponse(),
             });
         }else{
             console.error(exception);
             return response.status(500).json({
-                statusCode: 500,
+                status: 500,
                 message: 'SERVER ERROR',
             });
         }

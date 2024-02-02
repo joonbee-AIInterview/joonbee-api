@@ -166,7 +166,7 @@ export class MemberService {
 
             const result: RowDataPacket = await this.memberRepository
                 .createQueryBuilder('m')
-                .select(['m.id','m.thumbnail', 'm.nickName'])
+                .select(['m.id','m.thumbnail', 'm.nickName, m.email'])
                 .addSelect('COUNT(i.id)', 'interviewCount')
                 .leftJoin('m.interviews', 'i')
                 .where('m.id = :id', { id : memberId })
@@ -191,11 +191,13 @@ export class MemberService {
                     categoryCount: +packet.questionCount,
                 })
             });
+            let email = result.email ? result.email : null;
 
             const dto: ResponseMyInfoDTO = {
                 id: result.m_id,
                 thumbnail: result.m_thumbnail,
                 nickName: result.m_nick_name,
+                email: email,
                 interviewCount: Number(result.interviewCount),
                 questionCount: questionCount,
                 categoryInfo: categoryInfoDTOs

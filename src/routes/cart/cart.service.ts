@@ -7,6 +7,7 @@ import { Repository } from "typeorm";
 import { ResponseCartQuestionsDTO, ResponseCartQuestionsOfMemberData } from "./dto/response.dto";
 import { Question } from "src/entity/question.entity";
 import { Category } from "src/entity/category.entity";
+import { Member } from "src/entity/member.entity";
 
 @Injectable()
 export class CartService {
@@ -20,6 +21,8 @@ export class CartService {
           private readonly questionRepository: Repository<Question>,
           @InjectRepository(Category)
           private readonly categoryRepository: Repository<Category>,
+          @InjectRepository(Member)
+          private readonly memberRepository: Repository<Member>,
      ){
           this.PAGE_SIZE = 10;
      }
@@ -167,11 +170,15 @@ export class CartService {
       * @note 사용자가 입력한 질문을 생성하고 저장 후, 장바구니에 생성과 저장한다.
       */
      async insertMemberQuestionIntoCart(memberId: string, categoryName: string, subcategoryName: string, questionContent: string): Promise<void> {
-          if (!['fe', 'be', 'language', 'cs', 'mobile', 'etc'].includes(categoryName)) throw new CustomError('상위카테고리가 아닙니다. ', 400);
+          const checkMember = await this.memberRepository.findOne({
+               where: {
+                    id: memberId,
+               }
+          });
+          if (!checkMember) throw new CustomError('해당 사용자는 존재하지 않습니다. ', 400);
 
           const checkSubcategory = await this.categoryRepository.findOne({where: {categoryName: subcategoryName,},});
           if (!checkSubcategory || checkSubcategory.categoryLevel !== 1) throw new CustomError('존재하지 않는 하위 카테고리입니다. ', 400);
-
           const checkCategory = await this.categoryRepository.findOne({where: {categoryName,}});
           if (checkCategory.id !== checkSubcategory.categoryUpperId) throw new CustomError('하위카테고리가 상위카테고리에 속하지 않습니다. ', 400);
 
@@ -181,6 +188,7 @@ export class CartService {
                },
           });
           if (duplicateCheck) throw new CustomError('동일한 내용의 질문입니다. ', 400);
+
           try {
                const category = await this.categoryRepository.findOne({where: {categoryName: subcategoryName,},});
                const questionObj = this.questionRepository.create({
@@ -191,12 +199,7 @@ export class CartService {
                     questionContent: questionContent,
                });
                const question = await this.questionRepository.save(questionObj);
-               const cartObj = this.cartRepository.create({
-                    memberId,
-                    questionId: question.id,
-                    categoryName: subcategoryName,
-               });
-               await this.cartRepository.save(cartObj);
+               this.createObjectAndSave(memberId, question.id, subcategoryName);
           } catch (error) {
                console.error('insertMemberQuestionIntoCart ERROR cart.service 146');
                throw new CustomError('insertMemberQuestionIntoCart 서비스 코드 에러: 사용자가 생성한 질문 장바구니 담기 실패', 500);
@@ -206,27 +209,93 @@ export class CartService {
      /**
       * @note 메인페이지에 있던 질문을 클릭하면 사용자 장바구니에 저장이 된다.
       */
-     async insertMemberQuestionWithQuestionIdIntoCart(memberId: string, questionId: number, subcategoryName: string): Promise<void> {
-          const existQuestionInCart = await this.cartRepository.createQueryBuilder('c')
+     async insertMemberQuestionWithQuestionIdIntoCart(memberId: string, questionId: number, categoryName: string, subcategoryName: string, questionContent: string): Promise<void> {
+          const checkMember = await this.memberRepository.findOne({
+               where: {
+                    id: memberId,
+               }
+          });
+          if (!checkMember) throw new CustomError('해당 사용자는 존재하지 않습니다. ', 400);
+
+          if (typeof questionId !== 'number' || questionId <= 0 || typeof questionId === 'string') throw new CustomError('형식을 지키지 않은 questionId입니다. ', 400);
+          const existQuestion = await this.questionRepository.createQueryBuilder('q')
+               .select('q.id').where('q.id = :questionId', { questionId })
+               .getRawOne();
+          if (!existQuestion) throw new CustomError('해당 질문은 생성되지 않은 질문입니다. ', 400);
+
+          const existQuestionInMemberCart = await this.cartRepository.createQueryBuilder('c')
                .where('c.member_id = :memberId', { memberId }).andWhere('c.question_id = :questionId', { questionId })
                .getRawOne();
-          if (existQuestionInCart) throw new CustomError('장바구니에 이미 존재하는 질문입니다. ', 400);
-          const checkCategoryOfQuestion = await this.questionRepository.createQueryBuilder('q')
-               .select('c.category_name as questionSubcategory')
-               .innerJoin('category', 'c', 'q.category_id=c.id')
-               .where('q.id = :questionId', { questionId }).getRawOne();
-          if (checkCategoryOfQuestion.questionSubcategory !== subcategoryName) throw new CustomError('질문아이디와 카테고리가 일치하지 않습니다. ', 400);
+          if (existQuestionInMemberCart) throw new CustomError('사용자의 장바구니에 이미 존재하는 질문입니다. ', 400);
 
+          const checkSubcategory = await this.categoryRepository.findOne({where: {categoryName: subcategoryName,},});
+          if (!checkSubcategory || checkSubcategory.categoryLevel !== 1) throw new CustomError('존재하지 않는 하위카테고리입니다. ', 400);
+          const checkCategory = await this.categoryRepository.findOne({where: {categoryName,}});
+          if (checkCategory.id !== checkSubcategory.categoryUpperId) throw new CustomError('하위카테고리가 상위카테고리에 속하지 않습니다. ', 400);
+
+          const checkCategoryAndContentOfQuestion = await this.questionRepository.createQueryBuilder('q')
+               .select(['c.category_name AS questionSubcategory', 'q.question_content AS questionContent'])
+               .innerJoin('category', 'c', 'q.category_id=c.id')
+               .where('q.id = :questionId', { questionId })
+               .getRawOne();
+
+          if (checkCategoryAndContentOfQuestion.questionSubcategory !== subcategoryName ||
+               checkCategoryAndContentOfQuestion.questionContent !== questionContent) throw new CustomError('입력된 하위카테고리 또는 내용이 질문의 하위카테고리 또는 내용과 일치하지 않습니다. ', 400);
+          
           try {
-               const cartObj = this.cartRepository.create({
-                    memberId,
-                    questionId,
-                    categoryName: subcategoryName,
-               });
-               await this.cartRepository.save(cartObj);
+               this.createObjectAndSave(memberId, questionId, subcategoryName);
           } catch (error) {
                console.error('insertMemberQuestionWithQuestionIdIntoCart ERROR cart.service 146');
                throw new CustomError('insertMemberQuestionWithQuestionIdIntoCart 서비스 코드 에러: 기존에 있는 질문 장바구니 담기 실패', 500);
           }
      }
+
+
+     /**
+      * 객체를 생성하고 데이터베이스에 저장하는 코드
+      * 
+      * @param memberId 
+      * @param questionId 
+      * @param subcategoryName 
+      * @author 송재근
+      */
+     async createObjectAndSave(memberId: string, questionId: number, subcategoryName: string): Promise<void> {
+          const cartObj = this.cartRepository.create({
+               memberId: memberId,
+               questionId: questionId,
+               categoryName: subcategoryName,
+          });
+          await this.cartRepository.save(cartObj);
+     }
+
+     /**
+      * 상위카테고리의 유효성을 체크하는 코드
+      * 
+      * @param categoryName
+      * @author 송재근
+      */
+     validationCheckCategory(categoryName: string) {
+          if (categoryName === "") 
+               throw new CustomError('상위카테고리가 비었습니다. ', 400);
+          if (!['fe', 'be', 'language', 'cs', 'mobile', 'etc'].includes(categoryName)) 
+               throw new CustomError('상위카테고리가 아닙니다. ', 400);
+     }
+
+     // /**
+     //  * 하위카테고리의 유효성을 체크하는 코드
+     //  * 
+     //  * @param categoryName 
+     //  * @param subcategoryName 
+     //  * @author 송재근
+     //  */
+     // async validationCheckSubcategory(categoryName: string, subcategoryName: string): Promise<void> {
+     //      if (subcategoryName === "") 
+     //           throw new CustomError('하위카테고리가 비었습니다. ', 400);
+     //      const checkSubcategory = await this.categoryRepository.findOne({where: {categoryName: subcategoryName,},});
+     //      if (!checkSubcategory || checkSubcategory.categoryLevel !== 1) 
+     //           throw new CustomError('존재하지 않는 하위카테고리입니다. ', 400);
+     //      const checkCategory = await this.categoryRepository.findOne({where: {categoryName,}});
+     //      if (checkCategory.id !== checkSubcategory.categoryUpperId) 
+     //           throw new CustomError('하위카테고리가 상위카테고리에 속하지 않습니다. ', 400);
+     // }
 }

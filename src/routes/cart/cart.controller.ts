@@ -53,16 +53,23 @@ export class CartController {
      @Post('question/save')
      @ApiBody({ type: RequestMemberQuestionInsertCartDTO})
      async insertMemberQuestionIntoCart(
-          @Body(new ValidationPipe()) dto: RequestMemberQuestionInsertCartDTO,
+          @Body() dto: RequestMemberQuestionInsertCartDTO,
           @Res() response: Response  
      ) {
           const { questionId, categoryName, subcategoryName, questionContent } = dto;
-          if (subcategoryName === "") throw new CustomError('서브카테고리가 비었습니다. ', 400);
-          if (questionContent === "") throw new CustomError('질문 내용이 비어있습니다.', 400);
+          
+          this.cartService.validationCheckCategory(categoryName);
+          if (categoryName === "") throw new CustomError('상위카테고리가 비었습니다. ', 400);
+          if (!['fe', 'be', 'language', 'cs', 'mobile', 'etc'].includes(categoryName)) throw new CustomError('상위카테고리가 아닙니다. ', 400);
+
+          if (subcategoryName === "") throw new CustomError('하위카테고리가 비었습니다. ', 400);
+          if (questionContent === "" || /^\s*$/.test(questionContent)) throw new CustomError('질문 내용이 비어있습니다.', 400);
           const memberId = response.locals.memberId;
 
-          if (questionId !== undefined) await this.cartService.insertMemberQuestionWithQuestionIdIntoCart(memberId, questionId, subcategoryName);
-          else await this.cartService.insertMemberQuestionIntoCart(memberId, categoryName, subcategoryName, questionContent);
+          if (questionId !== undefined) 
+               await this.cartService.insertMemberQuestionWithQuestionIdIntoCart(memberId, questionId, categoryName, subcategoryName, questionContent);
+          else 
+               await this.cartService.insertMemberQuestionIntoCart(memberId, categoryName, subcategoryName, questionContent);
           const apiResponse: ApiResponse<string> = {
                status: 200,
                data: '성공'

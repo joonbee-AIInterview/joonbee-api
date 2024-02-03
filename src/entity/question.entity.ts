@@ -12,6 +12,9 @@ export class Question {
      @JoinColumn({ name: 'category_id' })
      category: Category;
 
+     @Column({name: 'category_id'})
+     categoryId: number;
+
      @OneToMany(() => InterviewAndQuestion, (imq) => imq.question )
      interviewAndQuestions: InterviewAndQuestion[];
 

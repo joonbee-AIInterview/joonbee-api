@@ -1,3 +1,6 @@
+import { Type } from "class-transformer";
+import { IsNumber } from "class-validator";
+
 /**
  * 줘야하는 공통된 Data
  */

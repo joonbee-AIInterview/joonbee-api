@@ -1,4 +1,6 @@
 import { ApiProperty } from "@nestjs/swagger";
+import { Type } from "class-transformer";
+import { IsNumber } from "class-validator";
 
 export class RequestMemberQuestionInsertCartDTO {
 
@@ -13,4 +15,12 @@ export class RequestMemberQuestionInsertCartDTO {
 
      @ApiProperty({ description: '질문 내용' })
      questionContent: string;
+}
+
+
+export class RequestInsertCartDTO {
+     @Type(() => Number)
+     questionId?: number;
+     questionContent?: string;
+     subcategoryName?: string;
 }

@@ -12,7 +12,6 @@ import { ResponseCartDTO, ResponseInterAndQuestionInfo, ResponseInterviewCategor
 @Controller('api/member')
 export class MemberController {
    
-
     constructor(private readonly memberService: MemberService){}
 
     /**

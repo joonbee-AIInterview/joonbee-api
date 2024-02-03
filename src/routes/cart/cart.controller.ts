@@ -89,7 +89,7 @@ export class CartController {
      ){
           const memberId = response.locals.memberId;
           
-          this.cartService.insertMemberQuestionIntoCartForMain(dto, memberId);
+          await this.cartService.insertMemberQuestionIntoCartForMain(dto, memberId);
           const apiResponse: ApiResponse<string> = {
                status: 200,
                data: '성공'

@@ -279,24 +279,30 @@ export class CartService {
                const existQuestion = await queryRunner.manager.exists(Question, { where: { id: dto.questionId}});
                if(!existQuestion) throw new CustomError('해당 id에 일치하는 질문이 없습니다.', 400);
 
+               const cartExitData = await queryRunner.manager.exists(Cart, {
+                    where : {
+                         memberId: memberId,
+                         questionId: dto.questionId
+                    }
+               });
+               if(cartExitData) throw new CustomError('이미 장바구니에 존재합니다.', 400);
+
                const cartObj = await queryRunner.manager.create(Cart, {
                     questionId: dto.questionId,
                     memberId,
                     categoryName: dto.subcategoryName
                });
-               console.log(cartObj);
 
                await queryRunner.manager.save(Cart, cartObj);
-               
                await queryRunner.commitTransaction();
 
           }catch(error){
                await queryRunner.rollbackTransaction();
-               console.error(error);
                if(error instanceof CustomError){
                     throw new CustomError(error.message,error.statusCode);
+               }else{
+                    throw new CustomError('메인페이지에서 장바구니를 저장하다가 에러발생', 500);
                }
-               throw new CustomError('메인페이지에서 장바구니를 저장하다가 에러발생', 500);
 
           }finally{
                await queryRunner.release();

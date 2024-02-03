@@ -261,8 +261,8 @@ export class MemberService {
                 .getRawOne();
             
             const subQuery = this.likeRepository.createQueryBuilder('like')
-            .select('like.interviewId')
-            .where('like.memberId = :memberId', { memberId });
+                .select('like.interviewId')
+                .where('like.memberId = :memberId', { memberId });
             
             const rowPacket: RowDataPacket[] = await this.interviewRepository
                 .createQueryBuilder('interview')

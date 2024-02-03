@@ -192,11 +192,11 @@ export class MemberService {
                 })
             });
             let email = result.email ? result.email : null;
-
+            console.log(result);
             const dto: ResponseMyInfoDTO = {
                 id: result.m_id,
                 thumbnail: result.m_thumbnail,
-                nickName: result.m_nick_name,
+                nickName: result.nick_name,
                 email: email,
                 interviewCount: Number(result.interviewCount),
                 questionCount: questionCount,

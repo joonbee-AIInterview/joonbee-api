@@ -7,6 +7,7 @@ import { TokenAuthGuard } from "src/common/config/auth";
 import { Category } from "src/entity/category.entity";
 import { Repository } from "typeorm";
 import { InjectRepository } from "@nestjs/typeorm";
+import { ParseOptionalArrayPipe } from "./const/pipe.const";
 
 @Controller('api/question')
 export class QuestionController {
@@ -79,25 +80,28 @@ export class QuestionController {
      @Get('gpt')
      async getQuestionsByGPT(
           @Query('category') category: string,
-          @Query('subcategory', new ParseArrayPipe({ items: String, separator: ',' })) subcategory: string[],
+          @Query('subcategory', ParseOptionalArrayPipe) subcategory: string[],
           @Query('questionCount') questionCount: string,
           @Res() response: Response  
      ) {
-          if (category === "") throw new CustomError('카테고리가 비었습니다. ', 400);
-          if (subcategory.length <= 0) throw new CustomError('서브카테고리가 비었습니다. ', 400);
-          if (![2, 4, 6, 8, 10].includes(parseInt(questionCount))) throw new CustomError('질문의 개수를 2, 4, 6, 8, 10 중에서 선택해주세요. ', 400);
-          const memberId: string = response.locals.memberId;
-          try {
-               const data = await this.questionService.getQuestionsByGPT(memberId, category, subcategory, questionCount);
-               const apiResponse: ApiResponse<ResponseGPTQuestionsDTO> = {
-                    status: 200,
-                    data
-                }
-               response.json(apiResponse);
-          } catch (error) {
-               console.error('getQuestionsByGPT 컨트롤러 에러발생: ' + error); 
-               throw new CustomError('알 수 없는 에러 : ' + error,500);
+          const memberId = response.locals.memberId;
+          await this.questionService.validationCheckMember(memberId);
+          this.questionService.validationCheckCategory(category);
+          this.questionService.validationCheckQuestionCount(questionCount);
+          let data;
+
+          if (subcategory.length !== 0) {
+               await this.questionService.validationCheckSubcategory(category, subcategory);
+               data = await this.questionService.getQuestionsByGPT(memberId, category, subcategory, questionCount);
+          } else {
+               data = await this.questionService.getQuestionsByGPTNoSubcategory(memberId, category, questionCount);
           }
+
+          const apiResponse: ApiResponse<ResponseGPTQuestionsDTO> = {
+               status: 200,
+               data
+          }
+          response.json(apiResponse);
      }
 
      /**
@@ -123,4 +127,5 @@ export class QuestionController {
                throw new CustomError('알 수 없는 에러 : ' + error,500);
           }
      }
+
 }

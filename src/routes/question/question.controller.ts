@@ -127,5 +127,4 @@ export class QuestionController {
                throw new CustomError('알 수 없는 에러 : ' + error,500);
           }
      }
-
 }

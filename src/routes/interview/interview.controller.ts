@@ -40,7 +40,7 @@ export class InterviewController {
           let data;
           const memberId = response.locals.memberId;
 
-          if (category === "") { 
+          if (category) { 
                data = await this.interviewService.getInterviews(Number(page), memberId, sort);
           } else {
                const check = await this.categoryRepository.findOne({

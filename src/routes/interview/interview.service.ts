@@ -3,7 +3,7 @@ import { InjectRepository } from "@nestjs/typeorm";
 import { CustomError } from "src/common/config/common";
 import { Interview } from "src/entity/interview.entity";
 import { DataSource, QueryRunner, Repository } from "typeorm";
-import { ResponseInterviewInfoDTO, ResponseInterviewsDTO, ResponseQuestionInfo } from "./dto/response.dto";
+import { ResponseInterviewInfoDTO, ResponseInterviewsDTO, ResponseInterviewsWithLikeMemberQuestionData, ResponseQuestionInfo } from "./dto/response.dto";
 import { Member } from 'src/entity/member.entity';
 import { Like } from 'src/entity/like.entity';
 import { InterviewAndQuestion } from 'src/entity/and.question.entity';
@@ -20,244 +20,291 @@ export class InterviewService {
           private readonly interviewRepository: Repository<Interview>,
           @InjectRepository(InterviewAndQuestion)
           private readonly interviewAndQuestionRepository: Repository<InterviewAndQuestion>,
+          @InjectRepository(Member)
+          private readonly memberRepository: Repository<Member>,
           private readonly dataSourse: DataSource
      ) {
           this.PAGE_SIZE = 9;
      }
 
      /**
-     * @note 디폴트로 9개의 랜덤 인터뷰를 가져온다.
-     */
-     async getInterviews(page: number, memberId: string, sort: string): Promise<ResponseInterviewsDTO> {
-          let rowPacket;
-          try {
-               const countQuery = await this.interviewRepository
-                    .createQueryBuilder('interview')
-                    .select('COUNT(interview.id)', 'count')
+      * 로그인하지 않은 상태에서 카테고리별로 인터뷰를 9개씩 가져오는 코드
+      * 
+      * @param page 
+      * @param categoryName 
+      * @param sort 
+      * @returns 
+      * @author 송재근
+      */
+     async getInterviewsByCategoryWithoutMemberId(page: number, categoryName: string, sort: string): Promise<ResponseInterviewsDTO> {
+          const countQuery = await this.interviewRepository.createQueryBuilder('i')
+                    .select('COUNT(i.id)', 'count')
+                    .where('i.categoryName = :categoryName', { categoryName })
                     .getRawOne();
-               let interviewsWithQuestionCategoryMemberDTOs;
-               if (memberId === undefined) {
-                    if (sort === 'like') {
-                         rowPacket = await this.interviewRepository
-                              .createQueryBuilder('interview')
-                              .select(['interview.id as interviewID',
-                                   'interview.member_id as memberId',
-                                   'm.thumbnail as thumbnail', 
-                                   'm.nick_name as nickname', 
-                                   'interview.category_name as categoryName',
-                                   'COUNT(l.member_id) as likeCount',
-                                   'interview.createdAt as createdAt'])
-                              .innerJoin('member', 'm', 'interview.member_id = m.id')
-                              .leftJoin('like', 'l', 'interview.id = l.interview_id')
-                              .groupBy('interview.id, interview.member_id, m.thumbnail, interview.category_name')
-                              .orderBy('likeCount', 'DESC').offset((page - 1) * this.PAGE_SIZE).limit(this.PAGE_SIZE).getRawMany();
-                    } else {
-                         rowPacket = await this.interviewRepository
-                              .createQueryBuilder('interview')
-                              .select(['interview.id as interviewID',
-                                   'interview.member_id as memberId',
-                                   'm.thumbnail as thumbnail', 
-                                   'm.nick_name as nickname', 
-                                   'interview.category_name as categoryName',
-                                   'COUNT(l.member_id) as likeCount',
-                                   'interview.createdAt as createdAt'])
-                                   .innerJoin('member', 'm', 'interview.member_id = m.id')
-                                   .leftJoin('like', 'l', 'interview.id = l.interview_id')
-                              .groupBy('interview.id, interview.member_id, m.thumbnail, interview.category_name')
-                              .orderBy('interview.createdAt', 'DESC').offset((page - 1) * this.PAGE_SIZE).limit(this.PAGE_SIZE).getRawMany();
-                    }
+          this.validationPagination(Number(countQuery.count), page);
 
-                    interviewsWithQuestionCategoryMemberDTOs = await Promise.all(rowPacket.map(async packet => {
-                         const { interviewID, memberId, thumbnail, categoryName, likeCount, nickname } = packet;
-                         const questionsQuery = await this.interviewAndQuestionRepository
-                              .createQueryBuilder('iaq')
-                              .select(['q.id as questionId','q.question_content as questionContent'])
-                              .innerJoin(Question, 'q', 'iaq.question_id = q.id')
-                              .where('iaq.interview_id = :interviewID', { interviewID }).getRawMany();
-                         const questions = questionsQuery.map(({ questionId, questionContent }) => ({questionId, questionContent,}));
-                         const interviewId = Number(interviewID);
-                         return {interviewId, memberId, nickname, thumbnail, categoryName, likeCount, questions};
-                    }));
-               } else {
-                    if (sort === 'like') {
-                         rowPacket = await this.interviewRepository.createQueryBuilder('i')
-                              .select([
-                                   'i.id as interviewID',
-                                   'i.member_id as memberId',
-                                   'm.thumbnail as thumbnail', 
-                                   'm.nick_name as nickname', 
-                                   'i.category_name as categoryName',
-                                   'COUNT(l.member_id) as likeCount',
-                                   `CASE WHEN EXISTS (
-                                        SELECT 1 FROM joonbee.like as ll 
-                                        WHERE ll.interview_id = i.id and ll.member_id = :memberId
-                                        ) then 1 ELSE 0 END as bool`])
-                              .innerJoin('member', 'm', 'i.member_id = m.id')
-                              .leftJoin('like', 'l', 'i.id = l.interview_id')
-                              .groupBy('i.id, i.member_id, m.thumbnail, i.category_name').setParameter('memberId', memberId)
-                              .orderBy('likeCount', 'DESC').offset((page - 1) * this.PAGE_SIZE).limit(this.PAGE_SIZE).getRawMany();
-                    } else {
-                         rowPacket = await this.interviewRepository.createQueryBuilder('i')
-                              .select([
-                                   'i.id as interviewID',
-                                   'i.member_id as memberId',
-                                   'm.thumbnail as thumbnail', 
-                                   'm.nick_name as nickname', 
-                                   'i.category_name as categoryName',
-                                   'COUNT(l.member_id) as likeCount',
-                                   `CASE WHEN EXISTS (
-                                        SELECT 1 FROM joonbee.like as ll 
-                                        WHERE ll.interview_id = i.id and ll.member_id = :memberId
-                                        ) then 1 ELSE 0 END as bool`])
-                              .innerJoin('member', 'm', 'i.member_id = m.id')
-                              .leftJoin('like', 'l', 'i.id = l.interview_id')
-                              .groupBy('i.id, i.member_id, m.thumbnail, i.category_name').setParameter('memberId', memberId)
-                              .orderBy('i.createdAt', 'DESC').offset((page - 1) * this.PAGE_SIZE).limit(this.PAGE_SIZE).getRawMany();
-                    }
+          try {
+               const tempPacket = await this.interviewRepository.createQueryBuilder('i')
+                    .select([
+                         'i.id as interviewId',
+                         'i.member_id as memberId',
+                         'm.thumbnail as thumbnail', 
+                         'm.nick_name as nickname', 
+                         'i.category_name as categoryName',
+                         'COUNT(l.member_id) as likeCount',
+                         'i.createdAt as createdAt'])
+                    .innerJoin('member', 'm', 'i.member_id = m.id')
+                    .leftJoin('like', 'l', 'i.id = l.interview_id')
+                    .where('i.categoryName = :categoryName', { categoryName })
+                    .groupBy('i.id, i.member_id, m.thumbnail, i.category_name');
 
-                    interviewsWithQuestionCategoryMemberDTOs = await Promise.all(rowPacket.map(async packet => {
-                         const { interviewID, memberId, thumbnail, categoryName, likeCount, nickname, bool } = packet;
-                         const liked = Boolean(bool);
-                         const questionsQuery = await this.interviewAndQuestionRepository
-                              .createQueryBuilder('iaq')
-                              .select(['q.id as questionId','q.question_content as questionContent'])
-                              .innerJoin(Question, 'q', 'iaq.question_id = q.id')
-                              .where('iaq.interview_id = :interviewID', { interviewID }).getRawMany();
-                         const questions = questionsQuery.map(({ questionId, questionContent }) => ({questionId, questionContent,}));
-                         const interviewId = Number(interviewID);
-                         return {interviewId, liked, memberId, nickname, thumbnail, categoryName, likeCount, questions};
-                    }));
-               }             
-      
-               const result: ResponseInterviewsDTO = {
-                    total: Number(countQuery.count),
-                    result: interviewsWithQuestionCategoryMemberDTOs,
-               };
-               return result;
+               let rowPacket;
+               if (sort === 'latest') rowPacket = await tempPacket.orderBy('i.createdAt', 'DESC').offset((page - 1) * this.PAGE_SIZE).limit(this.PAGE_SIZE).getRawMany();
+               else rowPacket = await tempPacket.orderBy('likeCount', 'DESC').offset((page - 1) * this.PAGE_SIZE).limit(this.PAGE_SIZE).getRawMany();
+
+               const interviewIdList = rowPacket.map((row) => row.interviewId);
+               const questionPacket = await this.interviewAndQuestionRepository.createQueryBuilder('iaq')
+                    .select([
+                         'iaq.interview_id as interviewId',
+                         'iaq.question_id as questionId',
+                         'q.question_content as questionContent'])
+                    .innerJoin('question', 'q', 'iaq.question_id = q.id')
+                    .andWhere('iaq.interview_id IN (:...interviewIdList)', {
+                         interviewIdList: interviewIdList.map((interviewId) => Number(interviewId))
+                    })
+                    .getRawMany();
+
+               const resultDTOs: ResponseInterviewsWithLikeMemberQuestionData[] = rowPacket.map(packet => ({
+                    interviewId: Number(packet.interviewId),
+                    memberId: packet.memberId,
+                    nickname: packet.nickname,
+                    thumbnail: packet.thumbnail,
+                    categoryName: packet.categoryName,
+                    likeCount: Number(packet.likeCount),
+                    questions: questionPacket
+                         .filter(question => question.interviewId === packet.interviewId)
+                         .map(interviewQuestion => ({
+                              questionId: Number(interviewQuestion.questionId),
+                              questionContent: interviewQuestion.questionContent,
+                         })),
+               }));
+               return this.makeResult(Number(countQuery.count), resultDTOs);
           } catch (error) {
-              console.error('getInterviews ERROR interview.service 66\n' + error);
-              throw new CustomError('메인 페이지 상단 디폴트 랜덤 인터뷰 정보 불러오기 실패', 500);
+               console.error('getInterviewsByCategoryWithoutMemberId ERROR interview.service \n' + error);
+               throw new CustomError('getInterviewsByCategoryWithoutMemberId 코드 오류 발생 ', 500);
           }
      }
 
      /**
-     * @note 상위카테고리로 분류한 9개의 랜덤 인터뷰를 가져온다.
-     */
-     async getInterviewsWithLikeMemberQuestion(page: number, memberId: string, categoryName: string, sort: string): Promise<ResponseInterviewsDTO> {
-          let rowPacket;
+      * 로그인한 상태에서 카테고리별로 인터뷰를 9개씩 가져오고 본인이 좋아요를 누른 인터뷰를 표시하는 코드
+      * 
+      * @param page 
+      * @param categoryName 
+      * @param memberId 
+      * @param sort 
+      * @returns 
+      * @author 송재근
+      */
+     async getInterviewsByCategoryWithMemberId(page: number, categoryName: string, memberId: string, sort: string): Promise<ResponseInterviewsDTO> {
+          const countQuery = await this.interviewRepository.createQueryBuilder('i')
+                    .select('COUNT(i.id)', 'count')
+                    .where('i.categoryName = :categoryName', { categoryName })
+                    .getRawOne();
+          this.validationPagination(Number(countQuery.count), page);
+          
           try {
-               const countQuery = await this.interviewRepository
-                    .createQueryBuilder('interview')
-                    .select('COUNT(interview.id)', 'count')
-                    .where('interview.categoryName = :categoryName', { categoryName: categoryName }).getRawOne();
-               let interviewsWithQuestionCategoryMemberDTOs;
+               const tempPacket = await this.interviewRepository.createQueryBuilder('i')
+                    .select([
+                         'i.id as interviewId',
+                         'i.member_id as memberId',
+                         'm.thumbnail as thumbnail', 
+                         'm.nick_name as nickname', 
+                         'i.category_name as categoryName',
+                         'COUNT(l.member_id) as likeCount',
+                         `CASE WHEN EXISTS (
+                              SELECT 1 FROM joonbee.like as ll 
+                              WHERE ll.interview_id = i.id and ll.member_id = :memberId
+                              ) then 1 ELSE 0 END as bool`])
+                    .innerJoin('member', 'm', 'i.member_id = m.id')
+                    .leftJoin('like', 'l', 'i.id = l.interview_id')
+                    .where('i.categoryName = :categoryName')
+                    .groupBy('i.id, i.member_id, m.thumbnail, i.category_name').setParameters({ memberId, categoryName });
 
-               if (memberId === undefined) {
-                    if (sort === 'like') {
-                         rowPacket = await this.interviewRepository
-                              .createQueryBuilder('interview')
-                              .select(['interview.id as interviewID',
-                                   'interview.member_id as memberId',
-                                   'm.thumbnail as thumbnail', 
-                                   'm.nick_name as nickname', 
-                                   'interview.category_name as categoryName',
-                                   'COUNT(l.member_id) as likeCount',
-                                   'interview.createdAt as createdAt'])
-                              .innerJoin(Member, 'm', 'interview.member_id = m.id')
-                              .leftJoin(Like, 'l', 'interview.id = l.interview_id')
-                              .where('interview.categoryName = :categoryName', { categoryName: categoryName })
-                              .groupBy('interview.id, interview.member_id, m.thumbnail, interview.category_name')
-                              .orderBy('likeCount', 'DESC').offset((page - 1) * this.PAGE_SIZE).limit(this.PAGE_SIZE).getRawMany();
-                    } else {
-                         rowPacket = await this.interviewRepository
-                              .createQueryBuilder('interview')
-                              .select(['interview.id as interviewID',
-                                   'interview.member_id as memberId',
-                                   'm.thumbnail as thumbnail', 
-                                   'm.nick_name as nickname', 
-                                   'interview.category_name as categoryName',
-                                   'COUNT(l.member_id) as likeCount',
-                                   'interview.createdAt as createdAt'])
-                              .innerJoin(Member, 'm', 'interview.member_id = m.id')
-                              .leftJoin(Like, 'l', 'interview.id = l.interview_id')
-                              .where('interview.categoryName = :categoryName', { categoryName: categoryName })
-                              .groupBy('interview.id, interview.member_id, m.thumbnail, interview.category_name')
-                              .orderBy('interview.createdAt', 'DESC').offset((page - 1) * this.PAGE_SIZE).limit(this.PAGE_SIZE).getRawMany();
-                    }
+               let rowPacket;
+               if (sort === 'latest') rowPacket = await tempPacket.orderBy('i.createdAt', 'DESC').offset((page - 1) * this.PAGE_SIZE).limit(this.PAGE_SIZE).getRawMany();
+               else rowPacket = await tempPacket.orderBy('likeCount', 'DESC').offset((page - 1) * this.PAGE_SIZE).limit(this.PAGE_SIZE).getRawMany();
 
-                    interviewsWithQuestionCategoryMemberDTOs = await Promise.all(rowPacket.map(async packet => {
-                         const { interviewID, memberId, thumbnail, categoryName, likeCount, nickname } = packet;
-                         const questionsQuery = await this.interviewAndQuestionRepository
-                              .createQueryBuilder('iaq')
-                              .select(['q.id as questionId','q.question_content as questionContent',])
-                              .innerJoin(Question, 'q', 'iaq.question_id = q.id')
-                              .where('iaq.interview_id = :interviewID', { interviewID }).getRawMany();
-                         const interviewId = Number(interviewID);
-                         const questions = questionsQuery.map(({ questionId, questionContent }) => ({questionId, questionContent,}));
-                         return {interviewId, memberId, nickname, thumbnail, categoryName, likeCount, questions};
-                    }));
-               } else {
-                    if (sort === 'like') {
-                         rowPacket = await this.interviewRepository.createQueryBuilder('i')
-                              .select([
-                                   'i.id as interviewID',
-                                   'i.member_id as memberId',
-                                   'm.thumbnail as thumbnail', 
-                                   'm.nick_name as nickname', 
-                                   'i.category_name as categoryName',
-                                   'COUNT(l.member_id) as likeCount',
-                                   `CASE WHEN EXISTS (
-                                        SELECT 1 FROM joonbee.like as ll 
-                                        WHERE ll.interview_id = i.id and ll.member_id = :memberId
-                                        ) then 1 ELSE 0 END as bool`])
-                              .innerJoin('member', 'm', 'i.member_id = m.id')
-                              .leftJoin('like', 'l', 'i.id = l.interview_id')
-                              .where('i.categoryName = :categoryName') 
-                              .groupBy('i.id, i.member_id, m.thumbnail, i.category_name').setParameters({ memberId: memberId, categoryName: categoryName})
-                              .orderBy('likeCount', 'DESC').offset((page - 1) * this.PAGE_SIZE).limit(this.PAGE_SIZE).getRawMany();
-                    } else {
-                         rowPacket = await this.interviewRepository.createQueryBuilder('i')
-                              .select([
-                                   'i.id as interviewID',
-                                   'i.member_id as memberId',
-                                   'm.thumbnail as thumbnail', 
-                                   'm.nick_name as nickname', 
-                                   'i.category_name as categoryName',
-                                   'COUNT(l.member_id) as likeCount',
-                                   `CASE WHEN EXISTS (
-                                        SELECT 1 FROM joonbee.like as ll 
-                                        WHERE ll.interview_id = i.id and ll.member_id = :memberId
-                                        ) then 1 ELSE 0 END as bool`])
-                              .innerJoin('member', 'm', 'i.member_id = m.id')
-                              .leftJoin('like', 'l', 'i.id = l.interview_id')
-                              .where('i.categoryName = :categoryName')
-                              .groupBy('i.id, i.member_id, m.thumbnail, i.category_name').setParameters({ memberId: memberId, categoryName: categoryName})
-                              .orderBy('i.createdAt', 'DESC').offset((page - 1) * this.PAGE_SIZE).limit(this.PAGE_SIZE).getRawMany();
-                    }
-                    interviewsWithQuestionCategoryMemberDTOs = await Promise.all(rowPacket.map(async packet => {
-                         const { interviewID, memberId, thumbnail, categoryName, likeCount, nickname, liked } = packet;
-                         const questionsQuery = await this.interviewAndQuestionRepository
-                              .createQueryBuilder('iaq')
-                              .select(['q.id as questionId','q.question_content as questionContent',])
-                              .innerJoin(Question, 'q', 'iaq.question_id = q.id')
-                              .where('iaq.interview_id = :interviewID', { interviewID }).getRawMany();
-                         const interviewId = Number(interviewID);
-                         const questions = questionsQuery.map(({ questionId, questionContent }) => ({questionId, questionContent,}));
-                         return {interviewId, liked, memberId, nickname, thumbnail, categoryName, likeCount, questions};
-                    }));
-               }
+               const interviewIdList = rowPacket.map((row) => row.interviewId);
+               const questionPacket = await this.interviewAndQuestionRepository.createQueryBuilder('iaq')
+                    .select([
+                         'iaq.interview_id as interviewId',
+                         'iaq.question_id as questionId',
+                         'q.question_content as questionContent'])
+                    .innerJoin('question', 'q', 'iaq.question_id = q.id')
+                    .andWhere('iaq.interview_id IN (:...interviewIdList)', {
+                         interviewIdList: interviewIdList.map((interviewId) => Number(interviewId))
+                    })
+                    .getRawMany();
 
-               const result: ResponseInterviewsDTO = {
-                    total: Number(countQuery.count),
-                    result: interviewsWithQuestionCategoryMemberDTOs,
-               };
-               return result;
-          } catch(error) {
-               console.error('getInterviewsWithLikeMemberQuestion ERROR interview.service 113\n' + error);
-               throw new CustomError('메인 페이지 상단 상위 카테고리 랜덤 인터뷰 정보 불러오기 실패', 500);
+               const resultDTOs: ResponseInterviewsWithLikeMemberQuestionData[] = rowPacket.map(packet => ({
+                    interviewId: Number(packet.interviewId),
+                    liked: Boolean(packet.bool),
+                    memberId: packet.memberId,
+                    nickname: packet.nickname,
+                    thumbnail: packet.thumbnail,
+                    categoryName: packet.categoryName,
+                    likeCount: Number(packet.likeCount),
+                    questions: questionPacket
+                         .filter(question => question.interviewId === packet.interviewId)
+                         .map(interviewQuestion => ({
+                              questionId: Number(interviewQuestion.questionId),
+                              questionContent: interviewQuestion.questionContent,
+                         })),
+               }));
+
+               return this.makeResult(Number(countQuery.count), resultDTOs);
+          } catch (error) {
+               console.error('getInterviewsByCategoryWithMemberId ERROR interview.service \n' + error);
+               throw new CustomError('getInterviewsByCategoryWithMemberId 코드 오류 발생 ', 500);
           }
      }
 
+     /**
+      * 로그인하지 않은 상태에서 인터뷰를 9개씩 가져오는 코드
+      * 
+      * @param page 
+      * @param sort 
+      * @returns 
+      * @author 송재근
+      */
+     async getInterviewsWithoutMemberId(page: number, sort: string): Promise<ResponseInterviewsDTO> {
+          const countQuery = await this.interviewRepository.createQueryBuilder('i')
+               .select('COUNT(i.id)', 'count')
+               .getRawOne();
+          this.validationPagination(Number(countQuery.count), page);
+     
+          try {
+               const tempPacket = await this.interviewRepository.createQueryBuilder('i')
+                    .select([
+                         'i.id as interviewId',
+                         'i.member_id as memberId',
+                         'm.thumbnail as thumbnail', 
+                         'm.nick_name as nickname', 
+                         'i.category_name as categoryName',
+                         'COUNT(l.member_id) as likeCount',
+                         'i.createdAt as createdAt'])
+                    .innerJoin('member', 'm', 'i.member_id = m.id')
+                    .leftJoin('like', 'l', 'i.id = l.interview_id')
+                    .groupBy('i.id, i.member_id, m.thumbnail, i.category_name');
+
+               let rowPacket;
+               if (sort === 'latest') rowPacket = await tempPacket.orderBy('i.createdAt', 'DESC').offset((page - 1) * this.PAGE_SIZE).limit(this.PAGE_SIZE).getRawMany();
+               else rowPacket = await tempPacket.orderBy('likeCount', 'DESC').offset((page - 1) * this.PAGE_SIZE).limit(this.PAGE_SIZE).getRawMany();           
+
+               const interviewIdList = rowPacket.map((row) => row.interviewId);
+               const questionPacket = await this.interviewAndQuestionRepository.createQueryBuilder('iaq')
+                    .select([
+                         'iaq.interview_id as interviewId',
+                         'iaq.question_id as questionId',
+                         'q.question_content as questionContent'])
+                    .innerJoin('question', 'q', 'iaq.question_id = q.id')
+                    .andWhere('iaq.interview_id IN (:...interviewIdList)', {
+                         interviewIdList: interviewIdList.map((interviewId) => Number(interviewId))
+                    })
+                    .getRawMany();
+
+               const resultDTOs: ResponseInterviewsWithLikeMemberQuestionData[] = rowPacket.map(packet => ({
+                    interviewId: Number(packet.interviewId),
+                    memberId: packet.memberId,
+                    nickname: packet.nickname,
+                    thumbnail: packet.thumbnail,
+                    categoryName: packet.categoryName,
+                    likeCount: Number(packet.likeCount),
+                    questions: questionPacket
+                         .filter(question => question.interviewId === packet.interviewId)
+                         .map(interviewQuestion => ({
+                              questionId: Number(interviewQuestion.questionId),
+                              questionContent: interviewQuestion.questionContent,
+                         })),
+               }));
+
+               return this.makeResult(Number(countQuery.count), resultDTOs);
+          } catch (error) {
+               console.error('getInterviewsWithoutMemberId ERROR interview.service \n' + error);
+               throw new CustomError('getInterviewsWithoutMemberId 코드 오류 발생 ', 500);
+          }
+     }
+
+     /**
+      * 로그인한 상태에서 인터뷰를 9개씩 가져오고 본인이 좋아요를 누른 인터뷰를 표시하는 코드
+      * 
+      * @param page  
+      * @param memberId 
+      * @param sort 
+      * @returns 
+      * @author 송재근
+      */
+     async getInterviewsWithMemberId(page: number, memberId: string, sort: string): Promise<ResponseInterviewsDTO> {
+          const countQuery = await this.interviewRepository.createQueryBuilder('i')
+               .select('COUNT(i.id)', 'count')
+               .getRawOne();
+          this.validationPagination(Number(countQuery.count), page);
+
+          try {
+               const tempPacket = await this.interviewRepository.createQueryBuilder('i')
+                    .select([
+                         'i.id as interviewId',
+                         'i.member_id as memberId',
+                         'm.thumbnail as thumbnail', 
+                         'm.nick_name as nickname', 
+                         'i.category_name as categoryName',
+                         'COUNT(l.member_id) as likeCount', 
+                         `CASE WHEN EXISTS (
+                              SELECT 1 FROM joonbee.like as ll 
+                              WHERE ll.interview_id = i.id and ll.member_id = :memberId
+                              ) then 1 ELSE 0 END as bool`])
+                    .innerJoin('member', 'm', 'i.member_id = m.id')
+                    .leftJoin('like', 'l', 'i.id = l.interview_id')
+                    .groupBy('i.id, i.member_id, m.thumbnail, i.category_name').setParameter('memberId', memberId);
+
+               let rowPacket;
+               if (sort === 'latest') rowPacket = await tempPacket.orderBy('i.createdAt', 'DESC').offset((page - 1) * this.PAGE_SIZE).limit(this.PAGE_SIZE).getRawMany();
+               else rowPacket = await tempPacket.orderBy('likeCount', 'DESC').offset((page - 1) * this.PAGE_SIZE).limit(this.PAGE_SIZE).getRawMany();
+
+               const interviewIdList = rowPacket.map((row) => row.interviewId);
+               const questionPacket = await this.interviewAndQuestionRepository.createQueryBuilder('iaq')
+                    .select([
+                         'iaq.interview_id as interviewId',
+                         'iaq.question_id as questionId',
+                         'q.question_content as questionContent'])
+                    .innerJoin('question', 'q', 'iaq.question_id = q.id')
+                    .andWhere('iaq.interview_id IN (:...interviewIdList)', {
+                         interviewIdList: interviewIdList.map((interviewId) => Number(interviewId))
+                    })
+                    .getRawMany();
+
+               const resultDTOs: ResponseInterviewsWithLikeMemberQuestionData[] = rowPacket.map(packet => ({
+                    interviewId: Number(packet.interviewId),
+                    liked: Boolean(packet.bool),
+                    memberId: packet.memberId,
+                    nickname: packet.nickname,
+                    thumbnail: packet.thumbnail,
+                    categoryName: packet.categoryName,
+                    likeCount: Number(packet.likeCount),
+                    questions: questionPacket
+                         .filter(question => question.interviewId === packet.interviewId)
+                         .map(interviewQuestion => ({
+                              questionId: Number(interviewQuestion.questionId),
+                              questionContent: interviewQuestion.questionContent,
+                         })),
+               }));
+
+               return this.makeResult(Number(countQuery.count), resultDTOs);
+          } catch (error) {
+               console.error('getInterviewsWithMemberId ERROR interview.service \n' + error);
+               throw new CustomError('getInterviewsWithMemberId 코드 오류 발생 ', 500);
+          }
+     }
 
      /**
       * @note 인터뷰 데이터 조호하지만 인증없이 조회이기 때문에 gpt 의견에 대한 정보는 조회하지 않음
@@ -323,4 +370,84 @@ export class InterviewService {
      /**
       * @note redis에서 sub받은 데이터들로 인터뷰 목록 정보 받아오기  
       */
+
+
+
+     /**
+      * page관한 유효성을 체크하는 코드
+      * 
+      * @param page
+      * @author 송재근
+      */
+     validationCheckPage(page: number) {
+          if (isNaN(Number(page))) 
+               throw new CustomError('page에는 문자가 아닌 숫자를 입력해주세요. ', 400);
+          if (Number(page) <= 0) 
+               throw new CustomError('page에는 1보다 큰 값을 입력해주세요. ', 400);
+     }
+
+     /**
+      * sort에 관한 유효성을 체크하는 코드
+      * 
+      * @param sort
+      * @author 송재근
+      */
+     validationCheckSort(sort: string) {
+          if (!['latest', 'like'].includes(sort)) 
+               throw new CustomError(`정렬 기준은 '최신순', '좋아요'만 가능합니다. `, 400);
+     }
+
+     /**
+      * categoryName에 정해진 형태만 오는지 확인하는 코드
+      * 
+      * @param categoryName
+      * @author 송재근
+      */
+     validationCheckCategory(categoryName: string) {
+          if (!['', 'fe', 'be', 'language', 'cs', 'mobile', 'etc'].includes(categoryName)) 
+               throw new CustomError('상위카테고리가 아닙니다. ', 400);
+     }
+
+     /**
+      * 로그인한 사용자가 존재하는 사용자인지 확인하는 코드
+      * 
+      * @param memberId
+      * @author 송재근
+      */
+     async validationCheckMember(memberId: string): Promise<void> {
+          const checkMember = await this.memberRepository.findOne({
+               where: {
+                    id: memberId,
+               },
+          });
+          if (!checkMember) 
+               throw new CustomError('존재하지 않는 사용자입니다. ', 400);
+     }
+
+     /**
+      * total과 만들어진 데이터를 result에 담는 코드
+      * 
+      * @param count 
+      * @param resultDTOs 
+      * @returns 
+      * @author 송재근
+      */
+     makeResult(count: number, resultDTOs: ResponseInterviewsWithLikeMemberQuestionData[]): ResponseInterviewsDTO {
+          const result: ResponseInterviewsDTO = {
+               total: count,
+               result: resultDTOs,
+          };
+          return result;
+     }
+
+     /**
+      * page 유효성을 체크하는 코드
+      * 
+      * @param countQuery 
+      * @author 송재근
+      */
+     validationPagination(countQuery: number, page: number) {
+          const maxPage = Math.ceil(countQuery / this.PAGE_SIZE);
+          if (page > maxPage) throw new CustomError('해당 페이지에는 데이터가 존재하지 않습니다.', 400);
+     } 
 }

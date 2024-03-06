@@ -30,7 +30,6 @@ export class InterviewController {
           @Res() response: Response,
      ) {  
           this.interviewService.validationCheckPage(Number(page));
-          this.interviewService.validationCheckCategory(category);
           this.interviewService.validationCheckSort(sort);
 
           const memberId = response.locals.memberId; 
@@ -43,6 +42,7 @@ export class InterviewController {
                     data = await this.interviewService.getInterviewsWithMemberId(Number(page), memberId, sort);
                }
           } else {
+               this.interviewService.validationCheckCategory(category);
                if (memberId === undefined) {
                     data = await this.interviewService.getInterviewsByCategoryWithoutMemberId(Number(page), category, sort);
                } else {

@@ -35,8 +35,7 @@ export class InterviewController {
 
           const memberId = response.locals.memberId; 
           let data;
-
-          if (category === "") {
+          if (!category) {
                if (memberId === undefined) {
                     data = await this.interviewService.getInterviewsWithoutMemberId(Number(page), sort);
                } else {

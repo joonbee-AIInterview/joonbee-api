@@ -9,6 +9,7 @@ export class ResponseInterviewsWithLikeMemberQuestionData {
      thumbnail: string;
      categoryName: string;
      likeCount: number;
+     subCategoryName: string;
 }
 export class ResponseQuestionData {
      questionId: number;

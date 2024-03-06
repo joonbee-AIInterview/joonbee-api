@@ -178,6 +178,8 @@ export class InterviewService {
       * @author 송재근
       */
      async getInterviewsWithoutMemberId(page: number, sort: string): Promise<ResponseInterviewsDTO> {
+
+          const subCategoryNameSet = new Set<string>();
           const countQuery = await this.interviewRepository.createQueryBuilder('i')
                .select('COUNT(i.id)', 'count')
                .getRawOne();
@@ -206,27 +208,38 @@ export class InterviewService {
                     .select([
                          'iaq.interview_id as interviewId',
                          'iaq.question_id as questionId',
-                         'q.question_content as questionContent'])
+                         'q.question_content as questionContent',
+                         'c.category_name as subCategoryName'
+                    ])
                     .innerJoin('question', 'q', 'iaq.question_id = q.id')
+                    .innerJoin('category', 'c', 'q.category_id = c.id')
                     .andWhere('iaq.interview_id IN (:...interviewIdList)', {
                          interviewIdList: interviewIdList.map((interviewId) => Number(interviewId))
                     })
                     .getRawMany();
 
-               const resultDTOs: ResponseInterviewsWithLikeMemberQuestionData[] = rowPacket.map(packet => ({
-                    interviewId: Number(packet.interviewId),
-                    memberId: packet.memberId,
-                    nickname: packet.nickname,
-                    thumbnail: packet.thumbnail,
-                    categoryName: packet.categoryName,
-                    likeCount: Number(packet.likeCount),
-                    questions: questionPacket
-                         .filter(question => question.interviewId === packet.interviewId)
-                         .map(interviewQuestion => ({
-                              questionId: Number(interviewQuestion.questionId),
-                              questionContent: interviewQuestion.questionContent,
-                         })),
-               }));
+               const resultDTOs: ResponseInterviewsWithLikeMemberQuestionData[] = rowPacket.map(packet => {
+                    subCategoryNameSet.clear();
+
+                    return {
+                         interviewId: Number(packet.interviewId),
+                         memberId: packet.memberId,
+                         nickname: packet.nickname,
+                         thumbnail: packet.thumbnail,
+                         categoryName: packet.categoryName,
+                         likeCount: Number(packet.likeCount),
+                         
+                         questions: questionPacket
+                              .filter(question => question.interviewId === packet.interviewId)
+                              .map(interviewQuestion => {
+                                   subCategoryNameSet.add(interviewQuestion.subCategoryName);
+                                   return {
+                                        questionId: Number(interviewQuestion.questionId),
+                                        questionContent: interviewQuestion.questionContent,
+                         }}),
+                         subCategoryName: Array.from(subCategoryNameSet).join(", ")
+                    }
+               });
 
                return this.makeResult(Number(countQuery.count), resultDTOs);
           } catch (error) {
@@ -245,6 +258,8 @@ export class InterviewService {
       * @author 송재근
       */
      async getInterviewsWithMemberId(page: number, memberId: string, sort: string): Promise<ResponseInterviewsDTO> {
+
+          const subCategoryNameSet = new Set<string>();
           const countQuery = await this.interviewRepository.createQueryBuilder('i')
                .select('COUNT(i.id)', 'count')
                .getRawOne();
@@ -265,7 +280,8 @@ export class InterviewService {
                               ) then 1 ELSE 0 END as bool`])
                     .innerJoin('member', 'm', 'i.member_id = m.id')
                     .leftJoin('like', 'l', 'i.id = l.interview_id')
-                    .groupBy('i.id, i.member_id, m.thumbnail, i.category_name').setParameter('memberId', memberId);
+                    .groupBy('i.id, i.member_id, m.thumbnail, i.category_name')
+                    .setParameter('memberId', memberId);
 
                let rowPacket;
                if (sort === 'latest') rowPacket = await tempPacket.orderBy('i.createdAt', 'DESC').offset((page - 1) * this.PAGE_SIZE).limit(this.PAGE_SIZE).getRawMany();
@@ -276,8 +292,11 @@ export class InterviewService {
                     .select([
                          'iaq.interview_id as interviewId',
                          'iaq.question_id as questionId',
-                         'q.question_content as questionContent'])
+                         'q.question_content as questionContent',
+                         'c.category_name as subCategoryName'
+                    ])
                     .innerJoin('question', 'q', 'iaq.question_id = q.id')
+                    .innerJoin('category', 'c', 'q.category_id = c.id')
                     .andWhere('iaq.interview_id IN (:...interviewIdList)', {
                          interviewIdList: interviewIdList.map((interviewId) => Number(interviewId))
                     })
@@ -293,10 +312,15 @@ export class InterviewService {
                     likeCount: Number(packet.likeCount),
                     questions: questionPacket
                          .filter(question => question.interviewId === packet.interviewId)
-                         .map(interviewQuestion => ({
-                              questionId: Number(interviewQuestion.questionId),
-                              questionContent: interviewQuestion.questionContent,
-                         })),
+                         .map(interviewQuestion => {
+                              subCategoryNameSet.add(interviewQuestion.subCategoryName);
+
+                              return {
+                                   questionId: Number(interviewQuestion.questionId),
+                                   questionContent: interviewQuestion.questionContent,
+                              }
+                         }),
+                    subCategoryName: Array.from(subCategoryNameSet).join(', ')
                }));
 
                return this.makeResult(Number(countQuery.count), resultDTOs);

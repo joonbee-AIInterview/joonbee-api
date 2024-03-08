@@ -37,6 +37,9 @@ export class InterviewService {
       * @author 송재근
       */
      async getInterviewsByCategoryWithoutMemberId(page: number, categoryName: string, sort: string): Promise<ResponseInterviewsDTO> {
+          
+          const subCategoryNameSet = new Set<string>();
+          
           const countQuery = await this.interviewRepository.createQueryBuilder('i')
                     .select('COUNT(i.id)', 'count')
                     .where('i.categoryName = :categoryName', { categoryName })
@@ -67,8 +70,11 @@ export class InterviewService {
                     .select([
                          'iaq.interview_id as interviewId',
                          'iaq.question_id as questionId',
-                         'q.question_content as questionContent'])
+                         'q.question_content as questionContent',
+                         'c.category_name as subCategoryName'
+                    ])
                     .innerJoin('question', 'q', 'iaq.question_id = q.id')
+                    .innerJoin('category', 'c' , 'q.category_id = c.id')
                     .andWhere('iaq.interview_id IN (:...interviewIdList)', {
                          interviewIdList: interviewIdList.map((interviewId) => Number(interviewId))
                     })
@@ -83,10 +89,15 @@ export class InterviewService {
                     likeCount: Number(packet.likeCount),
                     questions: questionPacket
                          .filter(question => question.interviewId === packet.interviewId)
-                         .map(interviewQuestion => ({
-                              questionId: Number(interviewQuestion.questionId),
-                              questionContent: interviewQuestion.questionContent,
-                         })),
+                         .map(interviewQuestion => {
+                              subCategoryNameSet.add(interviewQuestion.subCategoryName);
+                              
+                              return {
+                                   questionId: Number(interviewQuestion.questionId),
+                                   questionContent: interviewQuestion.questionContent,
+                              }
+                         }),
+                    subCategoryName: Array.from(subCategoryNameSet)
                }));
                return this.makeResult(Number(countQuery.count), resultDTOs);
           } catch (error) {
@@ -106,6 +117,8 @@ export class InterviewService {
       * @author 송재근
       */
      async getInterviewsByCategoryWithMemberId(page: number, categoryName: string, memberId: string, sort: string): Promise<ResponseInterviewsDTO> {
+          const subCategoryNameSet = new Set<string>();
+          
           const countQuery = await this.interviewRepository.createQueryBuilder('i')
                     .select('COUNT(i.id)', 'count')
                     .where('i.categoryName = :categoryName', { categoryName })
@@ -139,8 +152,11 @@ export class InterviewService {
                     .select([
                          'iaq.interview_id as interviewId',
                          'iaq.question_id as questionId',
-                         'q.question_content as questionContent'])
+                         'q.question_content as questionContent',
+                         'c.category_name as subCategoryName'
+                    ])
                     .innerJoin('question', 'q', 'iaq.question_id = q.id')
+                    .innerJoin('category', 'c' , 'q.category_id = c.id')
                     .andWhere('iaq.interview_id IN (:...interviewIdList)', {
                          interviewIdList: interviewIdList.map((interviewId) => Number(interviewId))
                     })
@@ -156,10 +172,15 @@ export class InterviewService {
                     likeCount: Number(packet.likeCount),
                     questions: questionPacket
                          .filter(question => question.interviewId === packet.interviewId)
-                         .map(interviewQuestion => ({
-                              questionId: Number(interviewQuestion.questionId),
-                              questionContent: interviewQuestion.questionContent,
-                         })),
+                         .map(interviewQuestion => {
+                              subCategoryNameSet.add(interviewQuestion.subCategoryName);
+
+                              return {
+                                   questionId: Number(interviewQuestion.questionId),
+                                   questionContent: interviewQuestion.questionContent,
+                              }
+                         }),
+                    subCategoryName: Array.from(subCategoryNameSet)
                }));
 
                return this.makeResult(Number(countQuery.count), resultDTOs);
@@ -237,7 +258,7 @@ export class InterviewService {
                                         questionId: Number(interviewQuestion.questionId),
                                         questionContent: interviewQuestion.questionContent,
                          }}),
-                         subCategoryName: Array.from(subCategoryNameSet).join(", ")
+                         subCategoryName: Array.from(subCategoryNameSet)
                     }
                });
 
@@ -320,7 +341,7 @@ export class InterviewService {
                                    questionContent: interviewQuestion.questionContent,
                               }
                          }),
-                    subCategoryName: Array.from(subCategoryNameSet).join(', ')
+                    subCategoryName: Array.from(subCategoryNameSet)
                }));
 
                return this.makeResult(Number(countQuery.count), resultDTOs);

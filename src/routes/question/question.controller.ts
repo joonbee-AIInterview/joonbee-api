@@ -26,7 +26,7 @@ export class QuestionController {
      async getQuestions(
           @Query('page') page: string = "1",
           @Query('category') category: string,
-          @Query('subcategory') subcategory: string,
+          @Query('subCategory') subcategory: string,
           @Res() response: Response,
      ) {  
           if (page === "") throw new CustomError('페이지가 비었습니다. ', 400);

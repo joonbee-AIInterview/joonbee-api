@@ -217,7 +217,11 @@ export class MemberService {
         try{
             const skipNumber = (page - 1) * this.PAGE_SIZE;
 
-            const countQuery = await this.interviewRepository.count();
+            const countQuery = await this.interviewRepository.count({
+                where: {
+                    memberId 
+                }
+            });
     
             const rowPacket: RowDataPacket[] = await this.interviewRepository
                 .createQueryBuilder('interview')

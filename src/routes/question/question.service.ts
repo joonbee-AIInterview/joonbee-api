@@ -300,4 +300,33 @@ export class QuestionService {
           const notFoundSubcategories = subcategoryName.filter(name => !subcategoryNameList.includes(name));
           if (notFoundSubcategories.length > 0) throw new CustomError('존재하지 않거나 하위카테고리가 상위카테고리에 속하지 않습니다.', 400);
      }
+
+     /**
+      * page관한 유효성을 체크하는 코드
+      * 
+      * @param page
+      * @author 송재근
+      */
+     validationCheckPage(page: number) {
+          if (isNaN(Number(page))) 
+               throw new CustomError('page에는 문자가 아닌 숫자를 입력해주세요. ', 400);
+          if (Number(page) <= 0) 
+               throw new CustomError('page에는 1보다 큰 값을 입력해주세요. ', 400);
+     }
+
+     /**
+      * 1번째 존재하는 하위카테고리를 확인하는 코드
+      * 2번째 하위카테고리가 상위카테고리에 속하는지 확인하는 코드
+      * 
+      * @param categoryName 
+      * @param subcategoryName
+      * @author 송재근 
+      */
+     async validationCheckCategoryIncludeSubcategory(categoryName: string, subcategoryName: string): Promise<void> {
+          const checkSubcategory = await this.categoryRepository.findOne({where: {categoryName: subcategoryName}}); 
+          if (!checkSubcategory || checkSubcategory.categoryLevel !== 1) throw new CustomError('데이터베이스에 존재하지 않는 하위카테고리입니다. ', 404);
+
+          const category = await this.categoryRepository.findOne({where: {categoryName,}}); 
+          if (category.id != checkSubcategory.categoryUpperId) throw new CustomError('하위카테고리가 상위카테고리에 속하지 않습니다. ', 400);
+     }
 }

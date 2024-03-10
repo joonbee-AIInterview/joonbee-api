@@ -4,9 +4,6 @@ import { ApiResponse, CustomError } from "src/common/config/common";
 import { ResponseGPTQuestionsDTO, ResponseQuestionsDTO, ResponseQuestionsInfoDTO } from "./dto/response.dto";
 import { Response } from 'express';
 import { TokenAuthGuard } from "src/common/config/auth";
-import { Category } from "src/entity/category.entity";
-import { Repository } from "typeorm";
-import { InjectRepository } from "@nestjs/typeorm";
 import { ParseOptionalArrayPipe } from "./const/pipe.const";
 
 @Controller('api/question')
@@ -14,9 +11,6 @@ export class QuestionController {
 
      constructor(
           private readonly questionService: QuestionService,
-          // 유효성 검사용
-          @InjectRepository(Category)
-          private readonly categoryRepository: Repository<Category>,
      ){}
 
      /**
@@ -29,48 +23,27 @@ export class QuestionController {
           @Query('subCategory') subcategory: string,
           @Res() response: Response,
      ) {  
-          if (page === "") throw new CustomError('페이지가 비었습니다. ', 400);
-          if (page === "0") page = "1";
+          this.questionService.validationCheckPage(Number(page));
           let data;
 
-          try {
-               if (category === "" && subcategory === "") {
-                    data = await this.questionService.getQuestions(Number(page));
-               } else if (category !== "" && subcategory === "") {
-                    const check = await this.categoryRepository.findOne({
-                         where: {
-                              categoryName: category,
-                         },
-                    });
-                    if (!check || check.categoryLevel !== 0) throw new CustomError('데이터베이스에 존재하지 않는 상위카테고리입니다. ', 404);
-                    data = await this.questionService.getQuestionsWithCategory(Number(page), category);
-               } else if (category !== "" && subcategory !== "") {
-                    const checkCategory = await this.categoryRepository.findOne({
-                         where: {
-                              categoryName: category,
-                         },
-                    });
-                    if (!checkCategory || checkCategory.categoryLevel !== 0) throw new CustomError('데이터베이스에 존재하지 않는 상위카테고리입니다. ', 404);
-                    const checkSubcategory = await this.categoryRepository.findOne({
-                         where: {
-                              categoryName: subcategory,
-                         },
-                    }); 
-                    if (!checkSubcategory || checkSubcategory.categoryLevel !== 1) throw new CustomError('데이터베이스에 존재하지 않는 하위카테고리입니다. ', 404);
-                    data = await this.questionService.getQuestionsWithSubcategory(Number(page), category, subcategory);
-               } else {
-                    throw new CustomError('category와 subcategory를 올바르게 입력하지 않았습니다. ', 404);
-               }
-
-               const apiResponse: ApiResponse<ResponseQuestionsDTO> = {
-                    status: 200,
-                    data
-               }
-               response.json(apiResponse);
-          } catch(error) {
-               console.error('getQuestions 컨트롤러 에러발생: ' + error); 
-               throw new CustomError('알 수 없는 에러 : ' + error,500);
+          if (category === "" && subcategory === "") {
+               data = await this.questionService.getQuestions(Number(page));
+          } else if (category !== "" && subcategory === "") {
+               this.questionService.validationCheckCategory(category);
+               data = await this.questionService.getQuestionsWithCategory(Number(page), category);
+          } else if (category !== "" && subcategory !== "") {
+               this.questionService.validationCheckCategory(category);
+               await this.questionService.validationCheckCategoryIncludeSubcategory(category, subcategory);
+               data = await this.questionService.getQuestionsWithSubcategory(Number(page), category, subcategory);
+          } else {
+               throw new CustomError('category와 subcategory를 올바르게 입력하지 않았습니다. ', 404);
           }
+
+          const apiResponse: ApiResponse<ResponseQuestionsDTO> = {
+               status: 200,
+               data
+          }
+          response.json(apiResponse);
      }
  
      /**

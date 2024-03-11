@@ -419,6 +419,8 @@ export class MemberService {
                 .select(['i.gpt_opinion AS gptOpinion', 'i.member_id AS memberId'])
                 .addSelect("q.question_content", "questionContent")
                 .addSelect("q.id","id")
+                .addSelect("iaq.commentary", "commentary")
+                .addSelect("iaq.evaluation" , "evaluation")
                 .innerJoin('i.interviewAndQuestions','iaq')
                 .innerJoin('iaq.question','q')
                 .where('i.id = :interviewId', {interviewId})
@@ -429,7 +431,9 @@ export class MemberService {
             data.forEach((result) => {
                 questionInfos.push({
                     questionId : +result.id,
-                    questionContent : result.questionContent
+                    questionContent : result.questionContent,
+                    commentary: result.commentary,
+                    evaluation: result.evaluation
                 });
             })
 

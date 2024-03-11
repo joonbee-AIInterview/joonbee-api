@@ -33,5 +33,7 @@ export class ResponseInterviewInfoDTO {
 export interface ResponseQuestionInfo{
      questionId: number;
      questionContent: string;
+     commentary: string;
+     evaluation: string;
  }
  

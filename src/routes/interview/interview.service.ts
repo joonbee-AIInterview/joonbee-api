@@ -371,7 +371,8 @@ export class InterviewService {
                          'q.questionContent as questionContent',
                          'q.id as questionId',
                          'iaq.commentary as commentary',
-                         'iaq.evaluation as evaluation'     
+                         'iaq.evaluation as evaluation',
+                         'iaq.answer_content as answerContent'   
                     ])
                     .from(Interview, 'i')
                     .innerJoin('i.member', 'm')
@@ -393,7 +394,8 @@ export class InterviewService {
                          questionId: +result.questionId,
                          questionContent: result.questionContent,
                          commentary: result.commentary,
-                         evaluation: result.evaluation
+                         evaluation: result.evaluation,
+                         answerContent: result.answerContent
                     })
                });
 

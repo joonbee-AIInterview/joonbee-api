@@ -35,5 +35,6 @@ export interface ResponseQuestionInfo{
      questionContent: string;
      commentary: string;
      evaluation: string;
+     answerContent: string;
  }
  

@@ -421,6 +421,7 @@ export class MemberService {
                 .addSelect("q.id","id")
                 .addSelect("iaq.commentary", "commentary")
                 .addSelect("iaq.evaluation" , "evaluation")
+                .addSelect("iaq.answer_content", "answerContent")
                 .innerJoin('i.interviewAndQuestions','iaq')
                 .innerJoin('iaq.question','q')
                 .where('i.id = :interviewId', {interviewId})
@@ -433,7 +434,8 @@ export class MemberService {
                     questionId : +result.id,
                     questionContent : result.questionContent,
                     commentary: result.commentary,
-                    evaluation: result.evaluation
+                    evaluation: result.evaluation,
+                    answerContent: result.answerContent
                 });
             })
 

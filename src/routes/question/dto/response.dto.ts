@@ -27,7 +27,7 @@ export class ResponseGPTQuestionsDTO {
 
 export class ResponseGPTQuestionData {
      questionId: number;
-     subcategoryName: string;
+     //subcategoryName: string;
      questionContent: string;
 }
 

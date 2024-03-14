@@ -155,7 +155,7 @@ export class QuestionService {
      async getQuestionsByGPT (memberId: string, categoryName: string, subcategoryName: string[], questionCount: string): Promise<ResponseGPTQuestionsDTO> {
           try {
                const rowPacket: RowDataPacket[] = await this.questionRepository.createQueryBuilder('q')
-                    .select(['q.id as questionId', 'q.question_content as questionContent', 'c.category_name as subcategory'])
+                    .select(['q.id as questionId', 'q.question_content as questionContent']) // 'c.category_name as subcategory'
                     .innerJoin('Category', 'c', 'q.category_id = c.id AND c.category_name IN (:...categoryNames)', { categoryNames: subcategoryName })
                     .where('q.writer = :writer', { writer: 'gpt' })
                     .orderBy('RAND()').limit(parseInt(questionCount)).getRawMany(); // RAND(): 추후 최적화 필요!
@@ -179,7 +179,7 @@ export class QuestionService {
 
           try {
                const rowPacket: RowDataPacket[] = await this.questionRepository.createQueryBuilder('q')
-                    .select(['q.id as questionId', 'q.question_content as questionContent', 'c.category_name as subcategory'])
+                    .select(['q.id as questionId', 'q.question_content as questionContent']) // 'c.category_name as subcategory'
                     .innerJoin('Category', 'c', 'q.category_id = c.id')
                     .where('q.writer = :writer', { writer: 'gpt' })
                     .andWhere('c.category_upper_id = :categoryId', { categoryId: categoryId.id })
@@ -232,7 +232,7 @@ export class QuestionService {
      makeGPTResult(memberId: string, categoryName: string, rowPacket: RowDataPacket[]): ResponseGPTQuestionsDTO {
           const questionByGptDTOs: ResponseGPTQuestionData[] = rowPacket.map(packet => ({
                questionId: packet.questionId,
-               subcategoryName: packet.subcategory,
+               // subcategoryName: packet.subcategory,
                questionContent: packet.questionContent,
           }));
           const result: ResponseGPTQuestionsDTO = {

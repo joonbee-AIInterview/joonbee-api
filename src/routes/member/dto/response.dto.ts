@@ -71,6 +71,9 @@ export interface ResponseInterviewDetail{
 export interface ResponseQuestionInfo{
     questionId: number;
     questionContent: string;
+    commentary:string;
+    evaluation: string;
+    answerContent: string;
 }
 
 export interface ResponseInterAndQuestionInfo{

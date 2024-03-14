@@ -217,7 +217,11 @@ export class MemberService {
         try{
             const skipNumber = (page - 1) * this.PAGE_SIZE;
 
-            const countQuery = await this.interviewRepository.count();
+            const countQuery = await this.interviewRepository.count({
+                where: {
+                    memberId 
+                }
+            });
     
             const rowPacket: RowDataPacket[] = await this.interviewRepository
                 .createQueryBuilder('interview')
@@ -415,6 +419,9 @@ export class MemberService {
                 .select(['i.gpt_opinion AS gptOpinion', 'i.member_id AS memberId'])
                 .addSelect("q.question_content", "questionContent")
                 .addSelect("q.id","id")
+                .addSelect("iaq.commentary", "commentary")
+                .addSelect("iaq.evaluation" , "evaluation")
+                .addSelect("iaq.answer_content", "answerContent")
                 .innerJoin('i.interviewAndQuestions','iaq')
                 .innerJoin('iaq.question','q')
                 .where('i.id = :interviewId', {interviewId})
@@ -425,7 +432,10 @@ export class MemberService {
             data.forEach((result) => {
                 questionInfos.push({
                     questionId : +result.id,
-                    questionContent : result.questionContent
+                    questionContent : result.questionContent,
+                    commentary: result.commentary,
+                    evaluation: result.evaluation,
+                    answerContent: result.answerContent
                 });
             })
 

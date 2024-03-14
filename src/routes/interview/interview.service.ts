@@ -364,7 +364,16 @@ export class InterviewService {
 
           try{
                const data = await queryRunner.manager.createQueryBuilder()
-                    .select(['m.thumbnail as profile, m.nickName as nickName, i.categoryName as categoryName, q.questionContent as questionContent, q.id as questionId'])
+                    .select([
+                         'm.thumbnail as profile', 
+                         'm.nickName as nickName',
+                         'i.categoryName as categoryName', 
+                         'q.questionContent as questionContent',
+                         'q.id as questionId',
+                         'iaq.commentary as commentary',
+                         'iaq.evaluation as evaluation',
+                         'iaq.answer_content as answerContent'   
+                    ])
                     .from(Interview, 'i')
                     .innerJoin('i.member', 'm')
                     .innerJoin('i.interviewAndQuestions','iaq')
@@ -383,7 +392,10 @@ export class InterviewService {
                data.forEach((result) => {
                     questionInfos.push({
                          questionId: +result.questionId,
-                         questionContent: result.questionContent
+                         questionContent: result.questionContent,
+                         commentary: result.commentary,
+                         evaluation: result.evaluation,
+                         answerContent: result.answerContent
                     })
                });
 

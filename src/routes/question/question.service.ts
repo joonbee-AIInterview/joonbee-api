@@ -74,7 +74,10 @@ export class QuestionService {
                          'question.category_id = category.id')
                     .select('COUNT(question.id)', 'count').getRawOne();
                const rowPacket: RowDataPacket[] = await this.questionRepository.createQueryBuilder('question')
-                    .select(['question.id AS questionId','category.id AS categoryId','question.question_content AS questionContent','category.category_name AS subcategoryName'])
+                    .select(['question.id AS questionId',
+                         'category.id AS categoryId',
+                         'question.question_content AS questionContent',
+                         'category.category_name AS subcategoryName'])
                     .innerJoin(
                          subQuery => {
                               return subQuery

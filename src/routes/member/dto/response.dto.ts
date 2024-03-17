@@ -65,6 +65,7 @@ export interface ResponseProfileDTO{
 
 export interface ResponseInterviewDetail{
     gptOpinion: string;
+    createdAt: string;
     questionContents: ResponseQuestionInfo[];
 }
 

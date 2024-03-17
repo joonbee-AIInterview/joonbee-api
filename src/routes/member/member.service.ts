@@ -77,7 +77,7 @@ export class MemberService {
                 memberId: memberIdforPublish,
                 categoryName: interviewEntityForMemberId.categoryName
             }
-            await this.redisService.publish(dataForPublish);
+           // await this.redisService.publish(dataForPublish);
 
         }catch(error){
             console.log('insertLIKE ERROR member.service 27 \n'+ error);
@@ -183,6 +183,7 @@ export class MemberService {
                 .groupBy('c.category_name')
                 .orderBy('questionCount','DESC')
                 .getRawMany();
+
             
             const categoryInfoDTOs: ResponseCategoryInfoDTO[] = rowPacket.map(packet => {
                 questionCount += Number(packet.questionCount);                
@@ -416,7 +417,11 @@ export class MemberService {
            
             const data: RowDataPacket[] = await this.interviewRepository
                 .createQueryBuilder('i')
-                .select(['i.gpt_opinion AS gptOpinion', 'i.member_id AS memberId'])
+                .select([
+                    'i.gpt_opinion AS gptOpinion', 
+                    'i.member_id AS memberId',
+                    'i.created_at AS createdAt'
+                ])
                 .addSelect("q.question_content", "questionContent")
                 .addSelect("q.id","id")
                 .addSelect("iaq.commentary", "commentary")
@@ -429,6 +434,7 @@ export class MemberService {
                 .getRawMany();
             
             if(!data.length) throw new CustomError('존재하지 않는 면접정보입니다.',400);
+            
             data.forEach((result) => {
                 questionInfos.push({
                     questionId : +result.id,
@@ -441,8 +447,10 @@ export class MemberService {
 
             const resultDTO: ResponseInterviewDetail = {
                 gptOpinion : data[0].gptOpinion,
+                createdAt: this.formatTimestamp(data[0].createdAt),
                 questionContents : questionInfos
             };
+
             return resultDTO;
             
         }catch(error){
@@ -558,5 +566,18 @@ export class MemberService {
             }
             throw new CustomError('면접 문제에 대한 정보 읽기 에러',500);
         }
+   }
+
+    formatTimestamp(timestamp: string) {
+        const date = new Date(timestamp);
+
+        const year = date.getFullYear();
+        const month = (date.getMonth() + 1).toString().padStart(2, '0');
+        const day = date.getDate().toString().padStart(2, '0');
+        const hours = date.getHours().toString().padStart(2, '0');
+        const minutes = date.getMinutes().toString().padStart(2, '0');
+
+        return `${year}.${month}.${day} ${hours}:${minutes}`;
+
    }
 }

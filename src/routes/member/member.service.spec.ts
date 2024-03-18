@@ -12,60 +12,96 @@ import {  Provider, forwardRef } from "@nestjs/common";
 import { Like } from "src/entity/like.entity";
 import { mock } from "node:test";
 
+function moduleContext(overrides: any) {
+  return Test.createTestingModule({
+    providers: [
+      MemberService,
+      {
+        provide: getRepositoryToken(Like),
+        useValue: {}
+      },
+      {
+        provide: getRepositoryToken(InterviewAndQuestion),
+        useValue: {}
+      },
+      {
+        provide: getRepositoryToken(Category),
+        useValue: {}
+      },
+      {
+        provide: getRepositoryToken(Cart),
+        useValue: {}
+      },
+      {
+        provide: RedisService,
+        useValue: {}
+      },
+      {
+        provide: getRepositoryToken(Member),
+        useValue: overrides.memberRepository || {}
+      },
+      {
+        provide: getRepositoryToken(Interview),
+        useValue: overrides.interviewRepository || {}
+      },
+      {
+        provide: DataSource,
+        useValue: {},
+      },
+    ],
+  }).compile();
+  
+}
+
 
 describe('MemberService', () => {
     let service: MemberService;
     let memberRepository: MockType<Repository<Member>>;
     let interviewRepository: MockType<Repository<Interview>>;
-    // 기타 필요한 리포지토리를 추가로 정의할 수 있습니다.
-    const dataSourceMock = {
-        name: 'mysql'
-      };
+    
+    const memberRepositoryMock = {
+      provide: getRepositoryToken(Member),
+      useValue: {
+        createQueryBuilder: jest.fn(() => ({
+          select: jest.fn().mockReturnThis(),
+          addSelect: jest.fn().mockReturnThis(),
+          leftJoin: jest.fn().mockReturnThis(),
+          where: jest.fn().mockReturnThis(),
+          groupBy: jest.fn().mockReturnThis(),
+          getRawOne: jest.fn().mockResolvedValue({
+              m_id: '13b4a',
+              m_thumbnail: 'https://i.ytimg.com/vi/_LVtaiW6j3U/hq720.jpg?sqp=-oaymwEhCK4FEIIDSFryq4qpAxMIARUAAAAAGAElAADIQj0AgKJD&rs=AOn4CLBN2WG-3sj3NY31Fxp4z0EnzyEnjQ',
+              nick_name: '패스트캠퍼스',
+              email: 'test@example.com',
+              interviewCount: '9'
+            }),
+        })),
+      },
+    };
+
+    const interviewRepositoryMock =  {
+      provide: getRepositoryToken(Interview),
+      useValue: {
+        createQueryBuilder: jest.fn(() => ({
+          select: jest.fn().mockReturnThis(),
+          addSelect: jest.fn().mockReturnThis(),
+          innerJoin: jest.fn().mockReturnThis(),
+          where: jest.fn().mockReturnThis(),
+          groupBy: jest.fn().mockReturnThis(),
+          orderBy: jest.fn().mockReturnThis(),
+          getRawMany: jest.fn().mockResolvedValue([
+              { categoryName: 'be', questionCount: '9' },
+          ]),
+        })),
+      },
+    }
+    
     beforeEach(async () => {
-      const module: TestingModule = await Test.createTestingModule({
-        providers: [
-          {
-            provide: getRepositoryToken(Member),
-            useValue: {
-              createQueryBuilder: jest.fn(() => ({
-                select: jest.fn().mockReturnThis(),
-                addSelect: jest.fn().mockReturnThis(),
-                leftJoin: jest.fn().mockReturnThis(),
-                where: jest.fn().mockReturnThis(),
-                groupBy: jest.fn().mockReturnThis(),
-                getRawOne: jest.fn().mockResolvedValue({
-                    m_id: '13b4a',
-                    m_thumbnail: 'https://i.ytimg.com/vi/_LVtaiW6j3U/hq720.jpg?sqp=-oaymwEhCK4FEIIDSFryq4qpAxMIARUAAAAAGAElAADIQj0AgKJD&rs=AOn4CLBN2WG-3sj3NY31Fxp4z0EnzyEnjQ',
-                    nick_name: '패스트캠퍼스',
-                    email: 'test@example.com',
-                    interviewCount: '9'
-                  }),
-              })),
-            },
-          },
-          {
-            provide: getRepositoryToken(Interview),
-            useValue: {
-              createQueryBuilder: jest.fn(() => ({
-                select: jest.fn().mockReturnThis(),
-                addSelect: jest.fn().mockReturnThis(),
-                innerJoin: jest.fn().mockReturnThis(),
-                where: jest.fn().mockReturnThis(),
-                groupBy: jest.fn().mockReturnThis(),
-                orderBy: jest.fn().mockReturnThis(),
-                getRawMany: jest.fn().mockResolvedValue([
-                    { categoryName: 'be', questionCount: '9' },
-                ]),
-              })),
-            },
-          },
-          // 기타 필요한 리포지토리의 모의 구현
-          {
-            provide: DataSource,
-            useValue: {/* DataSource에 대한 모의 구현, 필요한 경우 */},
-          },
-        ],
-      }).compile();
+      
+      const module = await moduleContext({
+        interviewRepository: interviewRepositoryMock.useValue, 
+        memberRepository: memberRepositoryMock.useValue
+      });
   
       service = module.get<MemberService>(MemberService);
       memberRepository = module.get(getRepositoryToken(Member));

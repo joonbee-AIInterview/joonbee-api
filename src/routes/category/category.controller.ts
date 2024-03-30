@@ -4,7 +4,7 @@ import { Category } from "src/entity/category.entity";
 import { ApiResponse } from "src/common/config/common";
 
 
-@Controller('category')
+@Controller('/api/category')
 export class CategoryController {
 
      constructor(private readonly categoryService: CategoryService){}

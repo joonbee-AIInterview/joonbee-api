@@ -16,6 +16,9 @@ export class Category { // 1 Category : N Question
      @Column({ type: 'int', name: 'category_upper_id' })
      categoryUpperId: number;
 
+     @Column({ type: 'varchar', name: 'category_name_kr'})
+     categoryNameKr: string;
+
      @OneToMany(() => Question, question => question.category)
      questions: Question[];
 

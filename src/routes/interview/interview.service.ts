@@ -7,8 +7,6 @@ import { ResponseInterviewInfoDTO, ResponseInterviewsDTO, ResponseInterviewsWith
 import { Member } from 'src/entity/member.entity';
 import { Like } from 'src/entity/like.entity';
 import { InterviewAndQuestion } from 'src/entity/and.question.entity';
-import { Question } from 'src/entity/question.entity';
-import { ResponseInterviewDetail } from "../member/dto/response.dto";
 
 @Injectable()
 export class InterviewService {
@@ -44,7 +42,6 @@ export class InterviewService {
                     .select('COUNT(i.id)', 'count')
                     .where('i.categoryName = :categoryName', { categoryName })
                     .getRawOne();
-          this.validationPagination(Number(countQuery.count), page);
 
           try {
                const tempPacket = await this.interviewRepository.createQueryBuilder('i')
@@ -60,13 +57,14 @@ export class InterviewService {
                     .leftJoin('like', 'l', 'i.id = l.interview_id')
                     .where('i.categoryName = :categoryName', { categoryName })
                     .groupBy('i.id, i.member_id, m.thumbnail, i.category_name');
-
                let rowPacket;
                if (sort === 'latest') rowPacket = await tempPacket.orderBy('i.createdAt', 'DESC').offset((page - 1) * this.PAGE_SIZE).limit(this.PAGE_SIZE).getRawMany();
                else rowPacket = await tempPacket.orderBy('likeCount', 'DESC').offset((page - 1) * this.PAGE_SIZE).limit(this.PAGE_SIZE).getRawMany();
-
                const interviewIdList = rowPacket.map((row) => row.interviewId);
-               const questionPacket = await this.interviewAndQuestionRepository.createQueryBuilder('iaq')
+
+               let questionPacket;
+               if (interviewIdList.length > 0) {
+               questionPacket = await this.interviewAndQuestionRepository.createQueryBuilder('iaq')
                     .select([
                          'iaq.interview_id as interviewId',
                          'iaq.question_id as questionId',
@@ -74,12 +72,14 @@ export class InterviewService {
                          'c.category_name as subCategoryName'
                     ])
                     .innerJoin('question', 'q', 'iaq.question_id = q.id')
-                    .innerJoin('category', 'c' , 'q.category_id = c.id')
+                    .innerJoin('category', 'c', 'q.category_id = c.id')
                     .andWhere('iaq.interview_id IN (:...interviewIdList)', {
                          interviewIdList: interviewIdList.map((interviewId) => Number(interviewId))
                     })
                     .getRawMany();
-
+               } else {
+                    questionPacket = []; // 빈 데이터
+               }
                const resultDTOs: ResponseInterviewsWithLikeMemberQuestionData[] = rowPacket.map(packet => ({
                     interviewId: Number(packet.interviewId),
                     memberId: packet.memberId,
@@ -123,7 +123,6 @@ export class InterviewService {
                     .select('COUNT(i.id)', 'count')
                     .where('i.categoryName = :categoryName', { categoryName })
                     .getRawOne();
-          this.validationPagination(Number(countQuery.count), page);
           
           try {
                const tempPacket = await this.interviewRepository.createQueryBuilder('i')
@@ -146,21 +145,26 @@ export class InterviewService {
                let rowPacket;
                if (sort === 'latest') rowPacket = await tempPacket.orderBy('i.createdAt', 'DESC').offset((page - 1) * this.PAGE_SIZE).limit(this.PAGE_SIZE).getRawMany();
                else rowPacket = await tempPacket.orderBy('likeCount', 'DESC').offset((page - 1) * this.PAGE_SIZE).limit(this.PAGE_SIZE).getRawMany();
-
                const interviewIdList = rowPacket.map((row) => row.interviewId);
-               const questionPacket = await this.interviewAndQuestionRepository.createQueryBuilder('iaq')
-                    .select([
-                         'iaq.interview_id as interviewId',
-                         'iaq.question_id as questionId',
-                         'q.question_content as questionContent',
-                         'c.category_name as subCategoryName'
-                    ])
-                    .innerJoin('question', 'q', 'iaq.question_id = q.id')
-                    .innerJoin('category', 'c' , 'q.category_id = c.id')
-                    .andWhere('iaq.interview_id IN (:...interviewIdList)', {
-                         interviewIdList: interviewIdList.map((interviewId) => Number(interviewId))
-                    })
-                    .getRawMany();
+
+               let questionPacket;
+               if (interviewIdList.length > 0) {
+                    questionPacket = await this.interviewAndQuestionRepository.createQueryBuilder('iaq')
+                         .select([
+                              'iaq.interview_id as interviewId',
+                              'iaq.question_id as questionId',
+                              'q.question_content as questionContent',
+                              'c.category_name as subCategoryName'
+                         ])
+                         .innerJoin('question', 'q', 'iaq.question_id = q.id')
+                         .innerJoin('category', 'c' , 'q.category_id = c.id')
+                         .andWhere('iaq.interview_id IN (:...interviewIdList)', {
+                              interviewIdList: interviewIdList.map((interviewId) => Number(interviewId))
+                         })
+                         .getRawMany();
+               } else {
+                    questionPacket = []; // 빈 데이터
+               }
 
                const resultDTOs: ResponseInterviewsWithLikeMemberQuestionData[] = rowPacket.map(packet => ({
                     interviewId: Number(packet.interviewId),
@@ -204,7 +208,6 @@ export class InterviewService {
           const countQuery = await this.interviewRepository.createQueryBuilder('i')
                .select('COUNT(i.id)', 'count')
                .getRawOne();
-          this.validationPagination(Number(countQuery.count), page);
      
           try {
                const tempPacket = await this.interviewRepository.createQueryBuilder('i')
@@ -223,21 +226,26 @@ export class InterviewService {
                let rowPacket;
                if (sort === 'latest') rowPacket = await tempPacket.orderBy('i.createdAt', 'DESC').offset((page - 1) * this.PAGE_SIZE).limit(this.PAGE_SIZE).getRawMany();
                else rowPacket = await tempPacket.orderBy('likeCount', 'DESC').offset((page - 1) * this.PAGE_SIZE).limit(this.PAGE_SIZE).getRawMany();           
-
                const interviewIdList = rowPacket.map((row) => row.interviewId);
-               const questionPacket = await this.interviewAndQuestionRepository.createQueryBuilder('iaq')
-                    .select([
-                         'iaq.interview_id as interviewId',
-                         'iaq.question_id as questionId',
-                         'q.question_content as questionContent',
-                         'c.category_name as subCategoryName'
-                    ])
-                    .innerJoin('question', 'q', 'iaq.question_id = q.id')
-                    .innerJoin('category', 'c', 'q.category_id = c.id')
-                    .andWhere('iaq.interview_id IN (:...interviewIdList)', {
-                         interviewIdList: interviewIdList.map((interviewId) => Number(interviewId))
-                    })
-                    .getRawMany();
+               
+               let questionPacket;
+               if (interviewIdList.length > 0) {
+                    questionPacket = await this.interviewAndQuestionRepository.createQueryBuilder('iaq')
+                         .select([
+                              'iaq.interview_id as interviewId',
+                              'iaq.question_id as questionId',
+                              'q.question_content as questionContent',
+                              'c.category_name as subCategoryName'
+                         ])
+                         .innerJoin('question', 'q', 'iaq.question_id = q.id')
+                         .innerJoin('category', 'c', 'q.category_id = c.id')
+                         .andWhere('iaq.interview_id IN (:...interviewIdList)', {
+                              interviewIdList: interviewIdList.map((interviewId) => Number(interviewId))
+                         })
+                         .getRawMany();
+               } else {
+                    questionPacket = [];
+               }
 
                const resultDTOs: ResponseInterviewsWithLikeMemberQuestionData[] = rowPacket.map(packet => {
                     subCategoryNameSet.clear();
@@ -284,7 +292,6 @@ export class InterviewService {
           const countQuery = await this.interviewRepository.createQueryBuilder('i')
                .select('COUNT(i.id)', 'count')
                .getRawOne();
-          this.validationPagination(Number(countQuery.count), page);
 
           try {
                const tempPacket = await this.interviewRepository.createQueryBuilder('i')
@@ -307,21 +314,26 @@ export class InterviewService {
                let rowPacket;
                if (sort === 'latest') rowPacket = await tempPacket.orderBy('i.createdAt', 'DESC').offset((page - 1) * this.PAGE_SIZE).limit(this.PAGE_SIZE).getRawMany();
                else rowPacket = await tempPacket.orderBy('likeCount', 'DESC').offset((page - 1) * this.PAGE_SIZE).limit(this.PAGE_SIZE).getRawMany();
-
                const interviewIdList = rowPacket.map((row) => row.interviewId);
-               const questionPacket = await this.interviewAndQuestionRepository.createQueryBuilder('iaq')
-                    .select([
-                         'iaq.interview_id as interviewId',
-                         'iaq.question_id as questionId',
-                         'q.question_content as questionContent',
-                         'c.category_name as subCategoryName'
-                    ])
-                    .innerJoin('question', 'q', 'iaq.question_id = q.id')
-                    .innerJoin('category', 'c', 'q.category_id = c.id')
-                    .andWhere('iaq.interview_id IN (:...interviewIdList)', {
-                         interviewIdList: interviewIdList.map((interviewId) => Number(interviewId))
-                    })
-                    .getRawMany();
+
+               let questionPacket;
+               if (interviewIdList.length > 0) {
+                    questionPacket = await this.interviewAndQuestionRepository.createQueryBuilder('iaq')
+                         .select([
+                              'iaq.interview_id as interviewId',
+                              'iaq.question_id as questionId',
+                              'q.question_content as questionContent',
+                              'c.category_name as subCategoryName'
+                         ])
+                         .innerJoin('question', 'q', 'iaq.question_id = q.id')
+                         .innerJoin('category', 'c', 'q.category_id = c.id')
+                         .andWhere('iaq.interview_id IN (:...interviewIdList)', {
+                              interviewIdList: interviewIdList.map((interviewId) => Number(interviewId))
+                         })
+                         .getRawMany();
+               } else {
+                    questionPacket = [];
+               }
 
                const resultDTOs: ResponseInterviewsWithLikeMemberQuestionData[] = rowPacket.map(packet => ({
                     interviewId: Number(packet.interviewId),
@@ -496,15 +508,4 @@ export class InterviewService {
           };
           return result;
      }
-
-     /**
-      * page 유효성을 체크하는 코드
-      * 
-      * @param countQuery 
-      * @author 송재근
-      */
-     validationPagination(countQuery: number, page: number) {
-          const maxPage = Math.ceil(countQuery / this.PAGE_SIZE);
-          if (page > maxPage) throw new CustomError('해당 페이지에는 데이터가 존재하지 않습니다.', 400);
-     } 
 }

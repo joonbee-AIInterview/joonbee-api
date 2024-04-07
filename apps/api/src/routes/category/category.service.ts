@@ -1,9 +1,9 @@
 
 import { Injectable } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
-import { CustomError } from "../../common/config/common";
 import { Category } from "@app/common/db/entity/category.entity";
 import { DataSource, QueryRunner, Repository } from "typeorm";
+import { CustomError } from "@app/common/config/common";
 
 @Injectable()
 export class CategoryService {

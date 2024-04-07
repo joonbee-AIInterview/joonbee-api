@@ -4,9 +4,9 @@ import { InjectRepository } from "@nestjs/typeorm";
 import { Category } from "@app/common/db/entity/category.entity";
 import { Question } from "@app/common/db/entity/question.entity";
 import { Repository } from "typeorm";
-import { CustomError } from "../../common/config/common";
 import { ResponseGPTQuestionData, ResponseGPTQuestionsDTO, ResponseQuestionsDTO, ResponseQuestionsData, ResponseQuestionsInfoDTO, ResponseQuestionsWithCategoryData } from "./dto/response.dto";
 import { Member } from '@app/common/db/entity/member.entity';
+import { CustomError } from '@app/common/config/common';
 
 
 @Injectable()

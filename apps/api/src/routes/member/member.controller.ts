@@ -1,13 +1,13 @@
 import { Delete, HttpException } from '@nestjs/common';
 import { Body, Controller, Get, ParseIntPipe, Post, Query, Req, Res, UseGuards, ValidationPipe } from '@nestjs/common';
 import { MemberService } from './member.service';
-import { ApiResponse, CustomError, PageResponseDTO } from '../../common/config/common';
 import { RequestCartInsertDTO, RequestInterviewSaveDTO, RequestLikeDTO } from './dto/request.dto';
 import { Request, Response } from 'express';
 import { ApiBody } from '@nestjs/swagger';
 import { Member } from '@app/common/db/entity/member.entity';
 import { ResponseCartDTO, ResponseInterAndQuestionInfo, ResponseInterviewCategoryDTO, ResponseInterviewDetail, ResponseMyInfoDTO, ResponseProfileDTO } from './dto/response.dto';
 import { TokenAuthGuard } from '../../common/config/auth';
+import { ApiResponse, PageResponseDTO } from '@app/common/config/common';
  
 @Controller('api/member')
 export class MemberController {

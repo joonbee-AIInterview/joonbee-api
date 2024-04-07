@@ -1,9 +1,9 @@
 import { Controller, Get, ParseIntPipe, Query, Res, UseGuards } from '@nestjs/common';
 import { InterviewService } from './interview.service';
 import { Response } from 'express';
-import { ApiResponse, CustomError } from '../../common/config/common';
 import { ResponseInterviewInfoDTO, ResponseInterviewsDTO } from './dto/response.dto';
 import { CheckLogin } from './const/check.login';
+import { ApiResponse } from '@app/common/config/common';
 
 @Controller('api/interview')
 export class InterviewController {

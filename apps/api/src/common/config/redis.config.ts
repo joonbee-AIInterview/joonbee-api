@@ -1,7 +1,7 @@
+import { CustomError } from "@app/common/config/common";
 import { Injectable } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import * as redis from 'redis';
-import { CustomError } from "./common";
 
 
 @Injectable()

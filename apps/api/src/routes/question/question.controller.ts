@@ -1,10 +1,10 @@
 import { Body, Controller,Get, ParseArrayPipe, Query, Res, UseGuards, ValidationPipe } from "@nestjs/common";
-import { ApiResponse, CustomError } from "../../common/config/common";
 import { ResponseGPTQuestionsDTO, ResponseQuestionsDTO, ResponseQuestionsInfoDTO } from "./dto/response.dto";
 import { Response } from 'express';
 import { ParseOptionalArrayPipe } from "./const/pipe.const";
 import { QuestionService } from "./question.service";
 import { TokenAuthGuard } from "../../common/config/auth";
+import { ApiResponse, CustomError } from "@app/common/config/common";
 
 @Controller('api/question')
 export class QuestionController {

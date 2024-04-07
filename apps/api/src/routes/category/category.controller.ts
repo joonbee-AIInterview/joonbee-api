@@ -1,7 +1,7 @@
 import { Body, Controller, Get, Post } from "@nestjs/common";
 import { CategoryService } from "./category.service";
 import { Category } from "@app/common/db/entity/category.entity";
-import { ApiResponse } from "../../common/config/common";
+import { ApiResponse } from "@app/common/config/common";
 
 
 @Controller('/api/category')

@@ -8,7 +8,7 @@ import { Question } from "@app/common/db/entity/question.entity";
 import { Category } from "@app/common/db/entity/category.entity";
 import { Member } from "@app/common/db/entity/member.entity";
 import { RequestInsertCartDTO } from "./dto/request.dto";
-import { CustomError } from "../../common/config/common";
+import { CustomError } from "@app/common/config/common";
 
 @Injectable()
 export class CartService {

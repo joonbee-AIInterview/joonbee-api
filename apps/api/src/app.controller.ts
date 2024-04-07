@@ -2,7 +2,7 @@ import { Controller, Get, Res } from '@nestjs/common';
 import { AppService } from './app.service';
 import * as jwt from 'jsonwebtoken';
 import { Response } from 'express';
-import { CustomError } from './common/config/common';
+import { CustomError } from '@app/common/config/common';
 
 @Controller()
 export class AppController {

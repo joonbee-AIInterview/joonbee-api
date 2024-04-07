@@ -2,7 +2,6 @@ import { RedisService } from '../../common/config/redis.config';
 import { RowDataPacket } from 'mysql2';
 import { HttpException, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { CustomError, PageResponseDTO } from '../../common/config/common';
 import { Category } from '@app/common/db/entity/category.entity';
 import { Like } from '@app/common/db/entity/like.entity';
 import { Member } from '@app/common/db/entity/member.entity';
@@ -13,6 +12,7 @@ import { InterviewAndQuestion } from '@app/common/db/entity/and.question.entity'
 import { plainToClass } from 'class-transformer';
 import { ResponseCartDTO, ResponseCategoryInfoDTO, ResponseInterAndQuestionInfo, ResponseInterviewCategoryDTO, ResponseInterviewCategoryData, ResponseInterviewDetail, ResponseMyInfoDTO, ResponseProfileDTO, ResponseQuestionInfo } from './dto/response.dto';
 import { Cart } from '@app/common/db/entity/cart.entity';
+import { CustomError, PageResponseDTO } from '@app/common/config/common';
 
 @Injectable()
 export class MemberService {

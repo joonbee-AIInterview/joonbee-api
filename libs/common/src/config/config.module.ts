@@ -1,4 +1,8 @@
 import { Module } from '@nestjs/common';
+import { CustomExceptionFilter } from './error.filter';
 
-@Module({})
+@Module({
+    providers: [CustomExceptionFilter],
+    exports: [CustomExceptionFilter]
+})
 export class ConfigModule {}

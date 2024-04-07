@@ -1,6 +1,5 @@
 import { Injectable } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
-import { CustomError } from "../../common/config/common";
 import { Interview } from "@app/common/db/entity/interview.entity";
 import { DataSource, QueryRunner, Repository } from "typeorm";
 import { ResponseInterviewInfoDTO, ResponseInterviewsDTO, ResponseInterviewsWithLikeMemberQuestionData, ResponseQuestionInfo } from "./dto/response.dto";
@@ -9,6 +8,7 @@ import { Like } from '@app/common/db/entity/like.entity';
 import { InterviewAndQuestion } from '@app/common/db/entity/and.question.entity';
 import { Question } from '@app/common/db/entity/question.entity';
 import { ResponseInterviewDetail } from "../member/dto/response.dto";
+import { CustomError } from "@app/common/config/common";
 
 @Injectable()
 export class InterviewService {

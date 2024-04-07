@@ -1,7 +1,7 @@
 import { CanActivate, ExecutionContext, Injectable } from "@nestjs/common";
-import { CustomError } from "./common";
 import { verify, TokenExpiredError, JsonWebTokenError } from 'jsonwebtoken';
 import { Response, Request } from "express";
+import { CustomError } from "@app/common/config/common";
 
 @Injectable()
 export class TokenAuthGuard implements CanActivate {

@@ -1,5 +1,5 @@
+import { CustomError } from "@app/common/config/common";
 import { ArgumentMetadata, Injectable, PipeTransform } from "@nestjs/common";
-import { CustomError } from "apps/api/src/common/config/common";
 
 @Injectable()
 export class ParseOptionalArrayPipe implements PipeTransform<string, string[]> {

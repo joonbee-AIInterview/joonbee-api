@@ -1,11 +1,11 @@
 import { Module } from '@nestjs/common';
 import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
-import { KakaoModule } from './routes/kakao/kakao.module';
-import { ConfigModule } from '@app/common/config/config.module';
+import { ConfigModule as CostomConfigModule } from '@app/common/config/config.module';
+import { ConfigModule } from '@nestjs/config';
 
 @Module({
-  imports: [KakaoModule, ConfigModule],
+  imports: [CostomConfigModule, ConfigModule ],
   controllers: [AuthController],
   providers: [AuthService],
 })

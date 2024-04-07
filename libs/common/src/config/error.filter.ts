@@ -7,7 +7,6 @@ export class CustomExceptionFilter implements ExceptionFilter {
         const ctx = host.switchToHttp();
         const response = ctx.getResponse();
         const request = ctx.getRequest();
-
         
         if(exception instanceof CustomError){
 

@@ -16,4 +16,13 @@ export class PageResponseDTO<T>{
    total: number;
    data: T;
 }
+
+export interface Payload {
+  id: string,
+  email: string,
+  password: string,
+  thumbnail: string,
+  loginType: string,
+  joonbee?:string
+}
   

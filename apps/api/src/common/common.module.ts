@@ -3,7 +3,7 @@ import { CommonController } from './common.controller';
 import { CommonService } from './common.service';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ConfigService } from '@nestjs/config';
-import { TypeOrmConfigService } from './config/confguration';
+import { TypeOrmConfigService } from '@app/common/config/db.config';
 
 @Module({
   imports:[

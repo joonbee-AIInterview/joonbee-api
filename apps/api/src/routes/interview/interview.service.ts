@@ -24,7 +24,7 @@ export class InterviewService {
           private readonly memberRepository: Repository<Member>,
           private readonly dataSourse: DataSource
      ) {
-          this.PAGE_SIZE = 9;
+          this.PAGE_SIZE = 16;
      }
 
      /**

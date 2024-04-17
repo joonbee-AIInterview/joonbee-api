@@ -29,7 +29,7 @@ export class TokenAuthGuard implements CanActivate {
                 throw new CustomError('토큰 이상함',406);
             
             }else{
-                console.error(err);
+                console.error(err)
                 throw new CustomError('토큰 서버에러',500);
                 
             }

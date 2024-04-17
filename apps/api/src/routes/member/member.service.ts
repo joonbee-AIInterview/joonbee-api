@@ -34,7 +34,7 @@ export class MemberService {
         private readonly redisService: RedisService,
         private readonly dataSource: DataSource
     ){
-        this.PAGE_SIZE = 6;
+        this.PAGE_SIZE = 16;
     }
 
     /**

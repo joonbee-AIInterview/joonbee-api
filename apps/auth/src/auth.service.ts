@@ -58,9 +58,8 @@ export class AuthService {
     payLoad = await this.handleNullCheck(payLoad);
 
     const { exists, nickName } = await this.existMember(payLoad.id);
-    
     // 첫 로그인일 시
-    if(!exists) this.insertMember(payLoad);
+    if(!exists) await this.insertMember(payLoad);
     if(!nickName) throw new CustomError(payLoad.id, 410);
     
     return await this.tokenService.generateToken(payLoad);
@@ -80,8 +79,13 @@ export class AuthService {
           loginType: payLoad.loginType
       });
 
+      await queryRunner.manager.save(Member, memberObj);
+
+      
       throw new CustomError(payLoad.id, 410);
 
+    }catch(err) {
+      throw new CustomError(payLoad.id, 410);
     }finally{
       await queryRunner.release();
     }
@@ -103,10 +107,10 @@ export class AuthService {
                 .getRawOne();
               
       const exists = Number(rowDatePacket.cnt);
-
+      console.log(rowDatePacket);
       return {
         exists: !!exists,
-        nickName: rowDatePacket.nickName
+        nickName: !!rowDatePacket.nickName
       }
 
     }catch(err) {

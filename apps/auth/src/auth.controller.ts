@@ -23,6 +23,8 @@ export class AuthController {
 
     response.cookie('joonbee-token', accessToken, { httpOnly: false, sameSite: 'none', secure: true });
     response.cookie('joonbee-token-refresh', refreshToken, { httpOnly: true, sameSite: 'none', secure: true });
+
+    console.log(accessToken);
     response.json(apiResponse);
   }
 }

@@ -9,6 +9,6 @@ async function bootstrap() {
   app.useGlobalFilters(new CustomExceptionFilter());
   app.setGlobalPrefix('auth');
 
-  await app.listen(3000);
+  await app.listen(3010);
 }
 bootstrap();

@@ -1,7 +1,7 @@
 
 import { Injectable } from "@nestjs/common";
 import * as crypto from 'crypto';
-import jwt from 'jsonwebtoken';
+import * as jwt from 'jsonwebtoken';
 import { CustomError, Payload } from "./common";
 import { ConfigService } from "@nestjs/config";
 

@@ -9,7 +9,6 @@ export class CustomExceptionFilter implements ExceptionFilter {
         const request = ctx.getRequest();
         
         if(exception instanceof CustomError){
-
             return response.status(exception.statusCode).json({
                 status: exception.statusCode,
                 message: exception.message,

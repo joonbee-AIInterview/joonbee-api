@@ -6,6 +6,6 @@ import { TypeOrmConfigService } from './db.config';
 
 @Module({
     providers: [CustomExceptionFilter, CryptUtils, TokenService, TypeOrmConfigService],
-    exports: [CustomExceptionFilter, CryptUtils]
+    exports: [CustomExceptionFilter, CryptUtils, TokenService]
 })
 export class ConfigModule {}

@@ -19,6 +19,49 @@ export class AuthService {
     return 'Hello World!';
   }
 
+  async naverAuthentication(code: string): Promise<[accessToken: string, refreshToken: string]> {
+    const tempPwd = "1234";
+    
+    const NAVER_CLIENTID = this.configService.get<string>('NAVER_CLIENTID');
+    const NAVER_CLIENTSECRET = this.configService.get<string>('NAVER_CLIENTSECRET');
+    const NAVER_TOKEN_URL = this.configService.get<string>('NAVER_TOKEN_URL'); 
+    const NAVER_USERINFO_URL = this.configService.get<string>('NAVER_USERINFO_URL');
+
+    const { data } = await axios.post(NAVER_TOKEN_URL, null,{
+      params: {
+          grant_type: 'authorization_code',
+          client_id: NAVER_CLIENTID,
+          client_secret: NAVER_CLIENTSECRET,
+          code: code
+      },
+      headers: {
+          'Content-type': 'application/x-www-form-urlencoded;charset=utf-8',
+      }
+    });
+    
+    const accessToken = data.access_token;
+
+    const userInfoRequest = await axios.get(NAVER_USERINFO_URL,{
+      headers: {
+          Authorization: `Bearer ${accessToken}`,
+      },
+    });
+
+    const userData = userInfoRequest.data.response;
+   
+    let payload: Payload = {
+        id: userData.id,
+        email: userData.email,
+        password: this.cryptUtils.encryptSHA256(tempPwd),
+        thumbnail: userData.profile_image,
+        loginType: 'NAVER'
+    }
+
+    payload = await this.handleNullCheck(payload);
+
+    return this.generateToken(payload);
+  }
+
   async kakaoAuthentication(code: string): Promise<[accessToken: string, refreshToken: string]> {
     const tempPwd = "1234";
 
@@ -55,14 +98,18 @@ export class AuthService {
       loginType: 'KAKAO'
     }
 
-    payLoad = await this.handleNullCheck(payLoad);
+    return this.generateToken(payLoad);
+  }
 
-    const { exists, nickName } = await this.existMember(payLoad.id);
+  async generateToken(param: Payload){
+    let payload = await this.handleNullCheck(param);
+
+    const { exists, nickName } = await this.existMember(payload.id);
     // 첫 로그인일 시
-    if(!exists) await this.insertMember(payLoad);
-    if(!nickName) throw new CustomError(payLoad.id, 410);
+    if(!exists) await this.insertMember(payload);
+    if(!nickName) throw new CustomError(payload.id, 410);
     
-    return await this.tokenService.generateToken(payLoad);
+    return await this.tokenService.generateToken(payload);
   }
 
   async insertMember(payLoad: Payload){
@@ -80,7 +127,6 @@ export class AuthService {
       });
 
       await queryRunner.manager.save(Member, memberObj);
-
       
       throw new CustomError(payLoad.id, 410);
 

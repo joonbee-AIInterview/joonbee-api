@@ -101,6 +101,52 @@ export class AuthService {
     return this.generateToken(payLoad);
   }
 
+  async googleAuthentication(code: string): Promise<[accessToken: string, refreshToken: string]> {
+    const tempPwd = "1234";
+    
+    const GOOGLE_CLIENTID = this.configService.get<string>('GOOGLE_CLIENTID');
+    const GOOGLE_CLIENTSECRET = this.configService.get<string>('GOOGLE_CLIENTSECRET');
+    const GOOGLE_TOKEN_URL = this.configService.get<string>('GOOGLE_TOKEN_URL'); 
+    const GOOGLE_USERINFO_URL = this.configService.get<string>('GOOGLE_USERINFO_URL');
+
+    const { data } = await axios.post(GOOGLE_TOKEN_URL, null,{
+      params: {
+          grant_type: 'authorization_code',
+          client_id: GOOGLE_CLIENTID,
+          client_secret: GOOGLE_CLIENTSECRET,
+          code: code
+      },
+      headers: {
+          'Content-type': 'application/x-www-form-urlencoded;charset=utf-8',
+      }
+    });
+    
+    const accessToken = data.access_token;
+
+    const userInfoRequest = await axios.get(GOOGLE_USERINFO_URL,{
+      headers: {
+          Authorization: `Bearer ${accessToken}`,
+      },
+    });
+
+    const userData = userInfoRequest.data.response;
+   
+    let payload: Payload = {
+        id: userData.id,
+        email: userData.email,
+        password: this.cryptUtils.encryptSHA256(tempPwd),
+        thumbnail: userData.profile_image,
+        loginType: 'GOOGLE'
+    }
+
+    payload = await this.handleNullCheck(payload);
+
+    return this.generateToken(payload);
+  }
+
+
+
+
   async generateToken(param: Payload){
     let payload = await this.handleNullCheck(param);
 

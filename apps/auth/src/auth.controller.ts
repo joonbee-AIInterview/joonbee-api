@@ -52,7 +52,7 @@ export class AuthController {
     @Query() query: OAuthParam,
     @Res() response: Response
   ) {
-    const [accessToken, refreshToken] = await this.authService.kakaoAuthentication(query.code);
+    const [accessToken, refreshToken] = await this.authService.googleAuthentication(query.code);
 
     const apiResponse: ApiResponse<boolean> = {
       status: 200,

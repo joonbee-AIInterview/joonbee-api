@@ -6,6 +6,7 @@ import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import axios from 'axios';
 import { DataSource, QueryRunner } from 'typeorm';
+import { JwtPayload } from 'jsonwebtoken';
 
 @Injectable()
 export class AuthService {
@@ -142,6 +143,15 @@ export class AuthService {
     payload = await this.handleNullCheck(payload);
 
     return this.generateToken(payload);
+  }
+
+
+  async refreshTokenIssuingTokens(refreshToken: string) {
+
+    const payloadData: JwtPayload = this.tokenService.verifyToken(refreshToken);
+
+
+    return this.tokenService.verifyToken
   }
 
 

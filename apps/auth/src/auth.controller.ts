@@ -1,7 +1,7 @@
-import { Controller, Get, Query, Res } from '@nestjs/common';
+import { Controller, Get, Query, Req, Res } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { OAuthParam } from './dto';
-import { Response } from 'express';
+import { Response, Request } from 'express';
 import { ApiResponse } from '@app/common/config/common';
 
 @Controller()
@@ -64,5 +64,28 @@ export class AuthController {
 
     console.log(accessToken);
     response.json(apiResponse);
+  }
+
+  @Get("login/logout")
+  async logout(
+    @Res() response: Response
+  ){
+        response.cookie('joonbee-token', '', {expires: new Date(0), httpOnly: false, sameSite: 'none', secure: true });
+        response.cookie('joonbee-token-refresh', '', {expires: new Date(0), httpOnly: true, sameSite: 'none', secure: true});
+
+        const apiResponse: ApiResponse<string> = {
+            status: 200,
+            data: '성공'
+        }
+
+        response.json(apiResponse);
+  }
+
+  @Get('login/refresh')
+  async refreshToken(
+    @Req() request: Request
+  ){
+    const refreshToken = request.cookies['joonbee-token-refresh'];
+
   }
 }

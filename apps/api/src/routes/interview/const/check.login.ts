@@ -2,10 +2,11 @@ import { CanActivate, ExecutionContext, Injectable } from "@nestjs/common";
 import { verify, TokenExpiredError, JsonWebTokenError } from 'jsonwebtoken';
 import { Response, Request } from "express";
 import { CustomError } from "@app/common/config/common";
+import { ConfigService } from "@nestjs/config";
 
 @Injectable()
 export class CheckLogin implements CanActivate {
-
+     constructor(private readonly configService: ConfigService){}
      async canActivate(context: ExecutionContext): Promise<boolean> {
 
           const request: Request = context.switchToHttp().getRequest();
@@ -14,7 +15,7 @@ export class CheckLogin implements CanActivate {
           if (!token) return true;
 
           try{
-               const decoded = verify(token, 'test');
+               const decoded = verify(token, this.configService.get<string>('TOKEN_KEY'));
                response.locals.memberId = decoded.joonbee;
                return true;
           }catch(error){

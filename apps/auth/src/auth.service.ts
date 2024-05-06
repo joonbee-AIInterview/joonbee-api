@@ -151,7 +151,7 @@ export class AuthService {
   }
 
   async nickNameChangeAuthentication(id: string, nickName: string) {
-    const existsMember = this.existMemberByNickName(nickName);
+    const existsMember = await this.existMemberByNickName(nickName);
     if(existsMember){
       throw new CustomError('이미 존재하는 닉네임입니다.', 400);
     }
@@ -230,7 +230,8 @@ export class AuthService {
             .where('m.nick_name = :nickName', { nickName: nickName })
             .getRawOne();
 
-      return !!data.cnt;
+      const dataNumber = Number(data.cnt);
+      return !!dataNumber;
 
     } finally {
       await queryRunner.release();

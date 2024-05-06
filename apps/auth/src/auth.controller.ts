@@ -1,6 +1,6 @@
-import { Controller, Get, Query, Req, Res } from '@nestjs/common';
+import { Body, Controller, Get, Post, Query, Req, Res } from '@nestjs/common';
 import { AuthService } from './auth.service';
-import { OAuthParam } from './dto';
+import { OAuthParam, RequestNickNameUpdateDTO } from './dto';
 import { Response, Request } from 'express';
 import { ApiResponse } from '@app/common/config/common';
 
@@ -100,5 +100,24 @@ export class AuthController {
     }
 
     response.json(apiResponse);
+  }
+
+  @Post('login/nick')
+  async nickNameChange(
+    @Body() dto: RequestNickNameUpdateDTO,
+    @Res() response: Response
+  ){
+
+    const [accessToken, refreshToken] = await this.authService.nickNameChangeAuthentication(dto.id, dto.nickName);
+    
+    const apiResponse: ApiResponse<string> = {
+      status: 200,
+      data: '성공'
+    }
+
+    response.cookie('joonbee-token', accessToken, { httpOnly: false, sameSite: 'none', secure: true });
+    response.cookie('joonbee-token-refresh', refreshToken, { httpOnly: true, sameSite: 'none', secure: true });
+    response.json(apiResponse);
+
   }
 }

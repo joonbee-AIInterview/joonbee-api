@@ -150,6 +150,16 @@ export class AuthService {
     return await this.tokenService.refreshGenerateToken(payloadData.id);
   }
 
+  async nickNameChangeAuthentication(id: string, nickName: string) {
+    const existsMember = this.existMemberByNickName(nickName);
+    if(existsMember){
+      throw new CustomError('이미 존재하는 닉네임입니다.', 400);
+    }
+
+    await this.updateNickName(id, nickName);
+    return await this.tokenService.refreshGenerateToken(id);
+  }
+
   async generateToken(param: Payload){
     let payload = await this.handleNullCheck(param);
 
@@ -182,6 +192,47 @@ export class AuthService {
     }catch(err) {
       throw new CustomError(payLoad.id, 410);
     }finally{
+      await queryRunner.release();
+    }
+  }
+
+  async updateNickName(id: string, nickName: string): Promise<void> {
+    const queryRunner: QueryRunner = this.dataSource.createQueryRunner();
+    
+    try{
+      await queryRunner.connect();
+      await queryRunner.manager.createQueryBuilder()
+                    .update(Member)
+                    .set({
+                      nickName: nickName
+                    })
+                    .where("id = :id", { id: id })
+                    .execute();
+
+    }catch(error){
+      throw new CustomError('Error Changin nickName', 500);
+    }finally{
+      await queryRunner.release();
+    }
+  }
+
+  async existMemberByNickName(nickName: string): Promise<boolean> {
+    const queryRunner: QueryRunner = this.dataSource.createQueryRunner();
+
+    try{
+      await queryRunner.connect();
+
+      const data = await queryRunner.manager.createQueryBuilder()
+            .select([
+              'count(*) as cnt'
+            ])
+            .from(Member, 'm')
+            .where('m.nick_name = :nickName', { nickName: nickName })
+            .getRawOne();
+
+      return !!data.cnt;
+
+    } finally {
       await queryRunner.release();
     }
   }

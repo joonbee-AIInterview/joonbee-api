@@ -6,7 +6,9 @@ import { ApiResponse } from '@app/common/config/common';
 
 @Controller()
 export class AuthController {
-  constructor(private readonly authService: AuthService) {}
+  constructor(
+    private readonly authService: AuthService,
+  ) {}
 
   @Get('kakao/callback')
   async kakaoOAuth(
@@ -83,9 +85,20 @@ export class AuthController {
 
   @Get('login/refresh')
   async refreshToken(
-    @Req() request: Request
+    @Req() request: Request,
+    @Res() response: Response
   ){
     const refreshToken = request.cookies['joonbee-token-refresh'];
+    const [newAccessToken, newRefreshToken] = await this.authService.refreshTokenIssuingTokens(refreshToken);
 
+    response.cookie('joonbee-token', newAccessToken, { httpOnly: false, sameSite: 'none', secure: true });
+    response.cookie('joonbee-token-refresh', newRefreshToken, { httpOnly: true, sameSite: 'none', secure: true });
+
+    const apiResponse: ApiResponse<string> = {
+      status: 200,
+      data: '성공'
+    }
+
+    response.json(apiResponse);
   }
 }

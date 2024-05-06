@@ -145,17 +145,10 @@ export class AuthService {
     return this.generateToken(payload);
   }
 
-
   async refreshTokenIssuingTokens(refreshToken: string) {
-
-    const payloadData: JwtPayload = this.tokenService.verifyToken(refreshToken);
-
-
-    return this.tokenService.verifyToken
+    const payloadData: JwtPayload = await this.tokenService.verifyToken(refreshToken);
+    return await this.tokenService.refreshGenerateToken(payloadData.id);
   }
-
-
-
 
   async generateToken(param: Payload){
     let payload = await this.handleNullCheck(param);

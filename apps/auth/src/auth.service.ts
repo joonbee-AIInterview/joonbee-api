@@ -109,16 +109,15 @@ export class AuthService {
     const GOOGLE_CLIENTSECRET = this.configService.get<string>('GOOGLE_CLIENTSECRET');
     const GOOGLE_TOKEN_URL = this.configService.get<string>('GOOGLE_TOKEN_URL'); 
     const GOOGLE_USERINFO_URL = this.configService.get<string>('GOOGLE_USERINFO_URL');
-
+    const REDIRECT_URI: string = process.env.REDIRECT_URI as string;
+    
     const { data } = await axios.post(GOOGLE_TOKEN_URL, null,{
       params: {
           grant_type: 'authorization_code',
           client_id: GOOGLE_CLIENTID,
           client_secret: GOOGLE_CLIENTSECRET,
+          redirect_uri: REDIRECT_URI,
           code: code
-      },
-      headers: {
-          'Content-type': 'application/x-www-form-urlencoded;charset=utf-8',
       }
     });
     
@@ -130,7 +129,7 @@ export class AuthService {
       },
     });
 
-    const userData = userInfoRequest.data.response;
+    const userData = userInfoRequest.data;
    
     let payload: Payload = {
         id: userData.id,

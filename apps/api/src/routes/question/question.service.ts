@@ -32,12 +32,18 @@ export class QuestionService {
           const skipNumber = (page - 1) * this.PAGE_SIZE;
           try {
                const countQuery: RowDataPacket = await this.questionRepository.createQueryBuilder('question')
-                    .select('COUNT(question.id)', 'count').getRawOne();
+                    .select('COUNT(question.id)', 'count')
+                    .where('question.writer = :writer', { writer: 'gpt'})
+                    .getRawOne();
                const rowPacket: RowDataPacket[] = await this.questionRepository.createQueryBuilder('q')
                     .select('q.id AS questionId, c.id AS categoryId, q.questionContent AS questionContent, parent.categoryName AS categoryName, c.categoryName AS subcategoryName')
                     .innerJoin(Category, 'c', 'q.category_id = c.id')
                     .innerJoin(Category, 'parent', 'c.category_upper_id = parent.id')
-                    .orderBy('q.id').offset(skipNumber).limit(this.PAGE_SIZE).getRawMany();
+                    .where('q.writer = :writer', { writer: 'gpt'})
+                    .orderBy('q.id')
+                    .offset(skipNumber)
+                    .limit(this.PAGE_SIZE)
+                    .getRawMany();
                     
                const questionsWithCategoryDTOs: ResponseQuestionsWithCategoryData[] = rowPacket.map(packet => ({
                     questionId: Number(packet.questionId),
@@ -64,15 +70,19 @@ export class QuestionService {
           const skipNumber = (page - 1) * this.PAGE_SIZE;
           try {
                const category = await this.categoryRepository.createQueryBuilder('category')
-                    .select('category.id').where('category.category_name = :categoryName', { categoryName }).getOne();
-               const countQuery: RowDataPacket = await this.questionRepository.createQueryBuilder('question')
-                    .innerJoin(
-                         subQuery => subQuery.from(Category, 'category')
-                         .select('*')
-                         .where('category.category_upper_id = :categoryId', { categoryId: category.id }),
-                         'category',
-                         'question.category_id = category.id')
-                    .select('COUNT(question.id)', 'count').getRawOne();
+                    .select('category.id')
+                    .where('category.category_name = :categoryName', { categoryName })
+                    .getOne();
+
+               const countQuery: RowDataPacket = await this.questionRepository
+                    .createQueryBuilder('q')
+                    .select('COUNT(q.id)', 'count')
+                    .innerJoin('category', 'c', 'q.category_id = c.id AND c.category_name = :categoryName AND q.writer = :writer', {
+                         categoryName: categoryName,
+                         writer: 'gpt',
+                    })
+                    .getRawOne();
+
                const rowPacket: RowDataPacket[] = await this.questionRepository.createQueryBuilder('question')
                     .select(['question.id AS questionId',
                          'category.id AS categoryId',
@@ -87,6 +97,7 @@ export class QuestionService {
                          },
                          'category',
                          'question.category_id = category.id')
+                    .where('question.writer = :writer', { writer: 'gpt'})
                     .orderBy('questionId').offset(skipNumber).limit(this.PAGE_SIZE).getRawMany();
 
                const questionsWithCategoryDTOs: ResponseQuestionsWithCategoryData[] = rowPacket.map(packet => ({
@@ -112,15 +123,18 @@ export class QuestionService {
       */
      async getQuestionsWithSubcategory(page: number, categoryName: string, subCategoryName: string): Promise<ResponseQuestionsDTO> {
           const skipNumber = (page - 1) * this.PAGE_SIZE;
+
+          
           try {
-               const countQuery: RowDataPacket = await this.questionRepository.createQueryBuilder('question')
-                    .innerJoin(
-                         subQuery => subQuery.from(Category, 'category')
-                              .select('*')
-                              .where('category.category_name = :subCategoryName', { subCategoryName }),
-                         'category',
-                         'question.category_id = category.id')
-                    .select('COUNT(question.id)', 'count').getRawOne();
+               const countQuery: RowDataPacket = await this.questionRepository
+                    .createQueryBuilder('q')
+                    .select('COUNT(q.id)', 'count')
+                    .innerJoin('category', 'c', 'q.category_id = c.id AND c.category_name = :categoryName AND q.writer = :writer', {
+                         categoryName: subCategoryName,
+                         writer: 'gpt',
+                    })
+                    .getRawOne();
+
                const rowPacket: RowDataPacket[] = await this.questionRepository.createQueryBuilder('question')
                     .select(['question.id AS questionId','category.id AS categoryId','question.question_content AS questionContent','category.category_name AS subcategoryName'])
                     .innerJoin(
@@ -132,7 +146,11 @@ export class QuestionService {
                               },
                               'category',
                               'question.category_id = category.id')
-                    .orderBy('questionId').offset(skipNumber).limit(this.PAGE_SIZE).getRawMany();
+                    .where('question.writer = :writer', { writer: 'gpt'})
+                    .orderBy('questionId')
+                    .offset(skipNumber)
+                    .limit(this.PAGE_SIZE)
+                    .getRawMany();
 
                const questionsWithCategoryDTOs: ResponseQuestionsWithCategoryData[] = rowPacket.map(packet => ({
                     questionId: Number(packet.questionId),

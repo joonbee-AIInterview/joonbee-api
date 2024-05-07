@@ -230,7 +230,7 @@ export class CartService {
                     .innerJoin("category", "c_upper", "c.category_upper_id = c_upper.id")
                     .where("c.category_name = :categoryName", { categoryName: dto.subcategoryName })
                     .getRawOne();
-               console.log(categoryEntity);
+                    
                if(!categoryEntity) throw new CustomError('존재하는 않는 카테고리 ', 400); 
                
                const questionObj = await queryRunner.manager.create(Question, {

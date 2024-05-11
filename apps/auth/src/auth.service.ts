@@ -2,7 +2,7 @@ import { CustomError, Payload } from '@app/common/config/common';
 import { CryptUtils } from '@app/common/config/crypt';
 import { TokenService } from '@app/common/config/token.service';
 import { Member } from '@app/common/db/entity/member.entity';
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import axios from 'axios';
 import { DataSource, QueryRunner } from 'typeorm';
@@ -10,6 +10,7 @@ import { JwtPayload } from 'jsonwebtoken';
 
 @Injectable()
 export class AuthService {
+  private readonly logger = new Logger(AuthService.name);
   constructor(private readonly cryptUtils: CryptUtils,
               private readonly configService: ConfigService,
               private readonly dataSource: DataSource,
@@ -151,6 +152,7 @@ export class AuthService {
 
   async nickNameChangeAuthentication(id: string, nickName: string) {
     const existsMember = await this.existMemberByNickName(nickName);
+    this.logger.debug('닉네임 변경 값',existsMember);
     if(existsMember){
       throw new CustomError('이미 존재하는 닉네임입니다.', 400);
     }

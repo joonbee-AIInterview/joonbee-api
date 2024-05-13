@@ -24,7 +24,7 @@ export class CheckLogin implements CanActivate {
                     throw new CustomError('토큰 이상 에러', 403);
                }else if(error instanceof JsonWebTokenError){
                     console.error(error);
-                    throw new CustomError('토큰 이상 에러', 401);
+                    throw new CustomError('토큰 이상 에러', 406);
                }
           }
      }

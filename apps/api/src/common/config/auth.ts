@@ -15,7 +15,7 @@ export class TokenAuthGuard implements CanActivate {
         const token = request.cookies?.['joonbee-token'];
 
         if (!token) {
-            throw new CustomError('TOKEN이 없습니다.',401);
+            throw new CustomError('',200);
         }
 
         try{
@@ -26,7 +26,7 @@ export class TokenAuthGuard implements CanActivate {
         }catch(err){
             if(err instanceof TokenExpiredError){
                 console.error(err);
-                throw new CustomError('토큰 만료', 402);
+                throw new CustomError('토큰 만료', 403);
 
             }else if(err instanceof JsonWebTokenError){
                 console.error(err);

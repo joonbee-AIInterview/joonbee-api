@@ -13,7 +13,8 @@ import { plainToClass } from 'class-transformer';
 import { ResponseCartDTO, ResponseCategoryInfoDTO, ResponseInterAndQuestionInfo, ResponseInterviewCategoryDTO, ResponseInterviewCategoryData, ResponseInterviewDetail, ResponseMyInfoDTO, ResponseProfileDTO, ResponseQuestionInfo } from './dto/response.dto';
 import { Cart } from '@app/common/db/entity/cart.entity';
 import { CustomError, PageResponseDTO } from '@app/common/config/common';
-
+import { ConfigService } from '@nestjs/config';
+import { verify, TokenExpiredError, JsonWebTokenError } from 'jsonwebtoken';
 @Injectable()
 export class MemberService {
     private PAGE_SIZE: number;
@@ -32,6 +33,7 @@ export class MemberService {
         @InjectRepository(Cart)
         private readonly cartRepository: Repository<Cart>,
         private readonly redisService: RedisService,
+        private readonly configService: ConfigService,
         private readonly dataSource: DataSource
     ){
         this.PAGE_SIZE = 16;
@@ -160,7 +162,9 @@ export class MemberService {
      /**
      * @note member - interview - interview_and_question
      */
-    async myInfoData(memberId: string): Promise<ResponseMyInfoDTO>{
+    async myInfoData(token: string): Promise<ResponseMyInfoDTO>{
+        const memberId = this.tokenVerify(token);
+
        try{
             let questionCount:number = 0;
 
@@ -579,5 +583,26 @@ export class MemberService {
 
         return `${year}.${month}.${day} ${hours}:${minutes}`;
 
+   }
+
+   protected tokenVerify(token: string){
+        try{
+            const decoded = verify(token, this.configService.get("TOKEN_KEY"));
+            return decoded.joonbee;
+        }catch(err) {
+            if(err instanceof TokenExpiredError){
+                console.error(err);
+                throw new CustomError('토큰 만료', 403);
+
+            }else if(err instanceof JsonWebTokenError){
+                console.error(err);
+                throw new CustomError('토큰 이상함',406);
+            
+            }else{
+                console.error(err)
+                throw new CustomError('토큰 서버에러',500);
+                
+            }
+        }
    }
 }

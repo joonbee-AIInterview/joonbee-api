@@ -1,4 +1,4 @@
-import { Delete, HttpException } from '@nestjs/common';
+import { Delete, HttpException, HttpStatus } from '@nestjs/common';
 import { Body, Controller, Get, ParseIntPipe, Post, Query, Req, Res, UseGuards, ValidationPipe } from '@nestjs/common';
 import { MemberService } from './member.service';
 import { RequestCartInsertDTO, RequestInterviewSaveDTO, RequestLikeDTO } from './dto/request.dto';
@@ -8,28 +8,37 @@ import { Member } from '@app/common/db/entity/member.entity';
 import { ResponseCartDTO, ResponseInterAndQuestionInfo, ResponseInterviewCategoryDTO, ResponseInterviewDetail, ResponseMyInfoDTO, ResponseProfileDTO } from './dto/response.dto';
 import { TokenAuthGuard } from '../../common/config/auth';
 import { ApiResponse, PageResponseDTO } from '@app/common/config/common';
- 
+import { ConfigService } from '@nestjs/config';
+import { verify, TokenExpiredError, JsonWebTokenError } from 'jsonwebtoken';
+
 @Controller('api/member')
 export class MemberController {
    
-    constructor(private readonly memberService: MemberService){}
+    constructor(private readonly memberService: MemberService,
+                private readonly configService: ConfigService
+    ){}
 
     /**
      * @api token의 memberId로 사용자 PK, 썸네일, 닉네임, 인터뷰개수를 얻을 수 있다.
      */
-    @UseGuards(TokenAuthGuard)
     @Get('info')
     async myInfoSelect(
+        @Req() request: Request,
         @Res() response: Response
     ){
-        const memberId = response.locals.memberId;
-        const dto: ResponseMyInfoDTO =  await this.memberService.myInfoData(memberId);
-        
+        const token = request.cookies?.['joonbee-token'];
+        const apiResponseNotAuthorize: ApiResponse<string> = {
+            status: 200,
+            data: ""
+        }
+        if(!token) return response.status(HttpStatus.OK).json(apiResponseNotAuthorize);
+
+        const dto: ResponseMyInfoDTO =  await this.memberService.myInfoData(token);
         const apiResponse: ApiResponse<ResponseMyInfoDTO> = {
             status: 200,
             data: dto
         }
-
+    
         response.json(apiResponse);
     }
 

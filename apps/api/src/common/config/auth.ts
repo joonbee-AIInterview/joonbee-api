@@ -1,4 +1,4 @@
-import { CanActivate, ExecutionContext, Injectable } from "@nestjs/common";
+import { CanActivate, ExecutionContext, Injectable, Logger } from "@nestjs/common";
 import { verify, TokenExpiredError, JsonWebTokenError } from 'jsonwebtoken';
 import { Response, Request } from "express";
 import { CustomError } from "@app/common/config/common";
@@ -6,6 +6,7 @@ import { ConfigService } from "@nestjs/config";
 
 @Injectable()
 export class TokenAuthGuard implements CanActivate {
+    private readonly logger = new Logger(TokenAuthGuard.name);
 
     constructor(private readonly configService: ConfigService){}
 
@@ -15,12 +16,12 @@ export class TokenAuthGuard implements CanActivate {
         const token = request.cookies?.['joonbee-token'];
 
         if (!token) {
-            throw new CustomError('',200);
+            throw new CustomError('',401);
         }
 
         try{
             const decoded = verify(token, this.configService.get<string>('TOKEN_KEY'));
-            console.log(decoded.joonbee);
+            this.logger.debug(decoded.joonbee);
             response.locals.memberId = decoded.joonbee;
             return true; 
         }catch(err){

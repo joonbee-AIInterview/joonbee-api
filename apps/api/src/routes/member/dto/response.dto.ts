@@ -51,6 +51,10 @@ export class ResponseInterviewCategoryData{
     interviewId: number;
 }
 
+export class ResponseInterviewCategoryDataAndCreatedAt extends ResponseInterviewCategoryData{
+    createdAt: string;
+}
+
 
 export class ResponseCartDTO{
     questionContent: string;

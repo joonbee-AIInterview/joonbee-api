@@ -10,7 +10,7 @@ import { RequestInterviewSaveDTO } from './dto/request.dto';
 import { Interview } from '@app/common/db/entity/interview.entity';
 import { InterviewAndQuestion } from '@app/common/db/entity/and.question.entity';
 import { plainToClass } from 'class-transformer';
-import { ResponseCartDTO, ResponseCategoryInfoDTO, ResponseInterAndQuestionInfo, ResponseInterviewCategoryDTO, ResponseInterviewCategoryData, ResponseInterviewDetail, ResponseMyInfoDTO, ResponseProfileDTO, ResponseQuestionInfo } from './dto/response.dto';
+import { ResponseCartDTO, ResponseCategoryInfoDTO, ResponseInterAndQuestionInfo, ResponseInterviewCategoryDTO, ResponseInterviewCategoryData, ResponseInterviewCategoryDataAndCreatedAt, ResponseInterviewDetail, ResponseMyInfoDTO, ResponseProfileDTO, ResponseQuestionInfo } from './dto/response.dto';
 import { Cart } from '@app/common/db/entity/cart.entity';
 import { CustomError, PageResponseDTO } from '@app/common/config/common';
 import { ConfigService } from '@nestjs/config';
@@ -230,7 +230,12 @@ export class MemberService {
     
             const rowPacket: RowDataPacket[] = await this.interviewRepository
                 .createQueryBuilder('interview')
-                .select(['COUNT(*) AS questionCount', 'interview.categoryName AS categoryName', 'interview.id AS interviewId','interview.createdAt'])
+                .select([
+                    'COUNT(*) AS questionCount',
+                    'interview.categoryName AS categoryName', 
+                    'interview.id AS interviewId',
+                    'interview.createdAt as createdAt'
+                ])
                 .innerJoin('interview.interviewAndQuestions','iaq')
                 .where('interview.member_id = :memberId',{ memberId })
                 .groupBy('interview.id')
@@ -239,11 +244,11 @@ export class MemberService {
                 .limit(this.PAGE_SIZE)
                 .getRawMany();
     
-            const categoryInfoDTOs: ResponseInterviewCategoryData[] = rowPacket.map(packet => ({
+            const categoryInfoDTOs: ResponseInterviewCategoryDataAndCreatedAt[] = rowPacket.map(packet => ({
                 categoryName: packet.categoryName,
                 questionCount: +packet.questionCount,
                 interviewId: +packet.interviewId,
-    
+                createdAt: packet.createdAt
             }));
     
             const result: ResponseInterviewCategoryDTO = {

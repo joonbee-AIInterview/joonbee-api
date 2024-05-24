@@ -1,9 +1,10 @@
-import { Controller, Get, ParseIntPipe, Query, Res, UseGuards } from '@nestjs/common';
+import { Controller, Delete, Get, ParseIntPipe, Query, Res, UseGuards } from '@nestjs/common';
 import { InterviewService } from './interview.service';
 import { Response } from 'express';
 import { ResponseInterviewInfoDTO, ResponseInterviewsDTO } from './dto/response.dto';
 import { CheckLogin } from './const/check.login';
 import { ApiResponse } from '@app/common/config/common';
+import { TokenAuthGuard } from '../../common/config/auth';
 
 @Controller('api/interview')
 export class InterviewController {
@@ -74,5 +75,18 @@ export class InterviewController {
 
           return apiResponse;
      }
+
+     /*
+     @UseGuards(TokenAuthGuard)
+     @Delete("delete")
+     async interviewDelete(
+          @Query('interId', ParseIntPipe) interviewId: number,
+          @Res() response: Response
+     ){
+          
+          const memberId = response.locals.memberId;
+
+     }
+     */
 
 }

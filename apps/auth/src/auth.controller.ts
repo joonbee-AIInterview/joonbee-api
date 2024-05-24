@@ -8,7 +8,10 @@ import { ApiResponse } from '@app/common/config/common';
 export class AuthController {
   constructor(
     private readonly authService: AuthService,
-  ) {}
+    private secureBoolean: boolean
+  ) {
+    this.secureBoolean = false;
+  }
 
   /**
    * @api 카카오 소셜로그인
@@ -81,8 +84,8 @@ export class AuthController {
   async logout(
     @Res() response: Response
   ){
-        response.cookie('joonbee-token', '', {expires: new Date(0), httpOnly: false, sameSite: 'none', secure: false });
-        response.cookie('joonbee-token-refresh', '', {expires: new Date(0), httpOnly: true, sameSite: 'none', secure: false});
+        response.cookie('joonbee-token', '', {expires: new Date(0), httpOnly: false, sameSite: 'none', secure: this.secureBoolean });
+        response.cookie('joonbee-token-refresh', '', {expires: new Date(0), httpOnly: true, sameSite: 'none', secure: this.secureBoolean});
         const apiResponse: ApiResponse<string> = {
             status: 200,
             data: '성공'
@@ -104,8 +107,8 @@ export class AuthController {
     const refreshToken = request.cookies['joonbee-token-refresh'];
     const [newAccessToken, newRefreshToken] = await this.authService.refreshTokenIssuingTokens(refreshToken);
 
-    response.cookie('joonbee-token', newAccessToken, { httpOnly: false, sameSite: 'none', secure: false });
-    response.cookie('joonbee-token-refresh', newRefreshToken, { httpOnly: true, sameSite: 'none', secure: false });
+    response.cookie('joonbee-token', newAccessToken, { httpOnly: false, sameSite: 'none', secure: this.secureBoolean });
+    response.cookie('joonbee-token-refresh', newRefreshToken, { httpOnly: true, sameSite: 'none', secure: this.secureBoolean });
 
     const apiResponse: ApiResponse<string> = {
       status: 200,
@@ -144,7 +147,7 @@ export class AuthController {
    * @param refreshToken  리프레시토큰
    */
   protected async issuingCookies(response: Response, accessToken: string, refreshToken: string): Promise<void>{
-    response.cookie('joonbee-token', accessToken, { httpOnly: false, sameSite: 'none', secure: false });
-    response.cookie('joonbee-token-refresh', refreshToken, { httpOnly: true, sameSite: 'none', secure: false });
+    response.cookie('joonbee-token', accessToken, { httpOnly: false, sameSite: 'none', secure: this.secureBoolean });
+    response.cookie('joonbee-token-refresh', refreshToken, { httpOnly: true, sameSite: 'none', secure: this.secureBoolean });
   }
 }

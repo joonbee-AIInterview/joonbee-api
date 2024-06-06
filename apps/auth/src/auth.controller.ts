@@ -6,9 +6,10 @@ import { ApiResponse } from '@app/common/config/common';
 
 @Controller()
 export class AuthController {
+  private secureBoolean: boolean;
+  
   constructor(
     private readonly authService: AuthService,
-    private secureBoolean: boolean
   ) {
     this.secureBoolean = false;
   }

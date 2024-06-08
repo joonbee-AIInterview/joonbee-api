@@ -38,8 +38,8 @@ export class InterviewService {
       */
      async getInterviewsByCategoryWithoutMemberId(page: number, categoryName: string, sort: string): Promise<ResponseInterviewsDTO> {
           
-          const subCategoryNameSet = new Set<string>();
-          
+          const subCategoryMap  = new Map<string, Set<string>> ();
+
           const countQuery = await this.interviewRepository.createQueryBuilder('i')
                     .select('COUNT(i.id)', 'count')
                     .where('i.categoryName = :categoryName', { categoryName })
@@ -74,7 +74,8 @@ export class InterviewService {
                               'iaq.interview_id as interviewId',
                               'iaq.question_id as questionId',
                               'q.question_content as questionContent',
-                              'c.category_name as subCategoryName'
+                              'c.category_name as subCategoryName',
+                              "iaq.interview_id as interviewId"   
                          ])
                          .innerJoin('question', 'q', 'iaq.question_id = q.id')
                          .innerJoin('category', 'c' , 'q.category_id = c.id')
@@ -82,6 +83,7 @@ export class InterviewService {
                               interviewIdList: interviewIdList.map((interviewId) => Number(interviewId))
                          })
                          .getRawMany();
+
                }
 
                const resultDTOs: ResponseInterviewsWithLikeMemberQuestionData[] = rowPacket.map(packet => ({
@@ -94,14 +96,19 @@ export class InterviewService {
                     questions: questionPacket
                          .filter(question => question.interviewId === packet.interviewId)
                          .map(interviewQuestion => {
-                              subCategoryNameSet.add(interviewQuestion.subCategoryName);
+                              const categorySetForInterviewID = subCategoryMap.get(packet.interviewId);
+                              if(!categorySetForInterviewID) {
+                                   subCategoryMap.set(packet.interviewId, new Set<string>());
+                              }else {
+                                   categorySetForInterviewID.add(interviewQuestion.subCategoryName);
+                              }
                               
                               return {
                                    questionId: Number(interviewQuestion.questionId),
                                    questionContent: interviewQuestion.questionContent,
                               }
                          }),
-                    subCategoryName: Array.from(subCategoryNameSet)
+                    subCategoryName: Array.from(subCategoryMap.get(packet.interviewId)) || []
                }));
                return this.makeResult(Number(countQuery.count), resultDTOs);
           } catch (error) {
@@ -121,8 +128,9 @@ export class InterviewService {
       * @author 송재근
       */
      async getInterviewsByCategoryWithMemberId(page: number, categoryName: string, memberId: string, sort: string): Promise<ResponseInterviewsDTO> {
-          const subCategoryNameSet = new Set<string>();
-          
+
+          const subCategoryMap = new Map<string, Set<string>>();
+
           const countQuery = await this.interviewRepository.createQueryBuilder('i')
                     .select('COUNT(i.id)', 'count')
                     .where('i.categoryName = :categoryName', { categoryName })
@@ -181,14 +189,20 @@ export class InterviewService {
                     questions: questionPacket
                          .filter(question => question.interviewId === packet.interviewId)
                          .map(interviewQuestion => {
-                              subCategoryNameSet.add(interviewQuestion.subCategoryName);
+                              const categorySetForInterviewID = subCategoryMap.get(packet.interviewId);
+
+                              if(!categorySetForInterviewID) {
+                                   subCategoryMap.set(packet.interviewId, new Set<string>());
+                              }else{
+                                   categorySetForInterviewID.add(interviewQuestion.subCategoryName as string);
+                              }
 
                               return {
                                    questionId: Number(interviewQuestion.questionId),
                                    questionContent: interviewQuestion.questionContent,
                               }
                          }),
-                    subCategoryName: Array.from(subCategoryNameSet)
+                    subCategoryName: Array.from(subCategoryMap.get(packet.interviewId)) || []
                }));
 
                return this.makeResult(Number(countQuery.count), resultDTOs);
@@ -208,7 +222,8 @@ export class InterviewService {
       */
      async getInterviewsWithoutMemberId(page: number, sort: string): Promise<ResponseInterviewsDTO> {
 
-          const subCategoryNameSet = new Set<string>();
+          const subCategoryMap = new Map<string, Set<string>>();
+
           const countQuery = await this.interviewRepository.createQueryBuilder('i')
                .select('COUNT(i.id)', 'count')
                .getRawOne();
@@ -252,8 +267,6 @@ export class InterviewService {
                }
 
                const resultDTOs: ResponseInterviewsWithLikeMemberQuestionData[] = rowPacket.map(packet => {
-                    subCategoryNameSet.clear();
-
                     return {
                          interviewId: Number(packet.interviewId),
                          memberId: packet.memberId,
@@ -261,16 +274,22 @@ export class InterviewService {
                          thumbnail: packet.thumbnail,
                          categoryName: packet.categoryName,
                          likeCount: Number(packet.likeCount),
-                         
                          questions: questionPacket
                               .filter(question => question.interviewId === packet.interviewId)
                               .map(interviewQuestion => {
-                                   subCategoryNameSet.add(interviewQuestion.subCategoryName);
+                                   const categorySetForInterviewID = subCategoryMap.get(packet.interviewId);
+
+                                   if(!categorySetForInterviewID){
+                                        subCategoryMap.set(packet.interviewId, new Set<string>());
+                                   }else{
+                                        categorySetForInterviewID.add(interviewQuestion.subCategoryName as string);
+                                   }
+
                                    return {
                                         questionId: Number(interviewQuestion.questionId),
                                         questionContent: interviewQuestion.questionContent,
                          }}),
-                         subCategoryName: Array.from(subCategoryNameSet)
+                         subCategoryName: Array.from(subCategoryMap.get(packet.interviewId)) || []
                     }
                });
 
@@ -292,7 +311,8 @@ export class InterviewService {
       */
      async getInterviewsWithMemberId(page: number, memberId: string, sort: string): Promise<ResponseInterviewsDTO> {
 
-          const subCategoryNameSet = new Set<string>();
+          const subCategoryMap = new Map<string, Set<string>>();
+
           const countQuery = await this.interviewRepository.createQueryBuilder('i')
                .select('COUNT(i.id)', 'count')
                .getRawOne();
@@ -350,14 +370,20 @@ export class InterviewService {
                     questions: questionPacket
                          .filter(question => question.interviewId === packet.interviewId)
                          .map(interviewQuestion => {
-                              subCategoryNameSet.add(interviewQuestion.subCategoryName);
-
+                              
+                              const categorySetForInterviewID = subCategoryMap.get(packet.interviewId);
+                              if(!categorySetForInterviewID) {
+                                   subCategoryMap.set(packet.interviewId, new Set<string>());
+                              }else {
+                                   categorySetForInterviewID.add(interviewQuestion.subCategoryName as string);
+                              }
+                              
                               return {
                                    questionId: Number(interviewQuestion.questionId),
                                    questionContent: interviewQuestion.questionContent,
                               }
                          }),
-                    subCategoryName: Array.from(subCategoryNameSet)
+                         subCategoryName: Array.from(subCategoryMap.get(packet.interviewId)) || []
                }));
 
                return this.makeResult(Number(countQuery.count), resultDTOs);

@@ -97,10 +97,13 @@ export class InterviewService {
                          .filter(question => question.interviewId === packet.interviewId)
                          .map(interviewQuestion => {
                               const categorySetForInterviewID = subCategoryMap.get(packet.interviewId);
+
                               if(!categorySetForInterviewID) {
-                                   subCategoryMap.set(packet.interviewId, new Set<string>());
+                                   const subCategorySet = new Set<string>();
+                                   subCategorySet.add(interviewQuestion.subCategoryName);
+                                   subCategoryMap.set(packet.interviewId, subCategorySet);
                               }else {
-                                   categorySetForInterviewID.add(interviewQuestion.subCategoryName);
+                                   categorySetForInterviewID.add(interviewQuestion.subCategoryName as string);
                               }
                               
                               return {
@@ -192,7 +195,9 @@ export class InterviewService {
                               const categorySetForInterviewID = subCategoryMap.get(packet.interviewId);
 
                               if(!categorySetForInterviewID) {
-                                   subCategoryMap.set(packet.interviewId, new Set<string>());
+                                   const subCategorySet = new Set<string>();
+                                   subCategorySet.add(interviewQuestion.subCategoryName);
+                                   subCategoryMap.set(packet.interviewId, subCategorySet);
                               }else{
                                    categorySetForInterviewID.add(interviewQuestion.subCategoryName as string);
                               }
@@ -280,7 +285,9 @@ export class InterviewService {
                                    const categorySetForInterviewID = subCategoryMap.get(packet.interviewId);
 
                                    if(!categorySetForInterviewID){
-                                        subCategoryMap.set(packet.interviewId, new Set<string>());
+                                        const subCategorySet = new Set<string>();
+                                        subCategorySet.add(interviewQuestion.subCategoryName);
+                                        subCategoryMap.set(packet.interviewId, subCategorySet);
                                    }else{
                                         categorySetForInterviewID.add(interviewQuestion.subCategoryName as string);
                                    }
@@ -373,7 +380,9 @@ export class InterviewService {
                               
                               const categorySetForInterviewID = subCategoryMap.get(packet.interviewId);
                               if(!categorySetForInterviewID) {
-                                   subCategoryMap.set(packet.interviewId, new Set<string>());
+                                   const subCategorySet = new Set<string>();
+                                   subCategorySet.add(interviewQuestion.subCategoryName);
+                                   subCategoryMap.set(packet.interviewId, subCategorySet);
                               }else {
                                    categorySetForInterviewID.add(interviewQuestion.subCategoryName as string);
                               }
